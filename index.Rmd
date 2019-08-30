@@ -1,0 +1,96 @@
+---
+title: "Introduction to mapping and spatial analysis with R"
+author: ""
+output:
+  html_document: default
+bibliography: mybib.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+You are here: [https://heima.hafro.is/~einarhj/spatialr](https://heima.hafro.is/~einarhj/spatialr)
+
+### Time and location
+___
+
+__Time__: 2019-11-25 10:00 - 2019-11-29 15:00
+
+__Location__:
+```{r, fig.width = 9, fig.height = 3, message = FALSE, echo=FALSE, warning=FALSE}
+library(leaflet)
+content <- paste(sep = "<br/>",
+  "<b><a href='http://www.ices.dk'>ICES</a></b>",
+  "H. C. Andersens Boulevard 44-46",
+  "DK 1553 Copenhagen V, Denmark"
+)
+leaflet() %>% 
+  addTiles() %>% 
+  setView(lng = 12.575754, lat = 55.671455, zoom = 15) %>%
+   addPopups(12.575754, 55.671455, content,
+             options = popupOptions(closeButton = FALSE))
+```
+
+### Preamble
+___
+
+**Prior to the course** please install:
+
+* Latest version of __R__: see [The Comprehensive R Archive Network](https://cran.r-project.org/)
+    * If your platform is Windows, also install [Rtools](https://cran.r-project.org/bin/windows/Rtools)
+
+* Latest version of __RStudio__: see [RStudio Desktop](https://www.rstudio.com/products/rstudio/download/)
+    * If you are adventurous install the latest [developmental version](https://www.rstudio.com/products/rstudio/download/preview)
+
+For those that want to get a head we recommend the following read:
+
+  * [R for Data Science](http://r4ds.had.co.nz) [@wickham2016r]
+  * [Robin Lovelace, Jakub Nowosad, Jannes Muenchow: Geocomputation with R](https://geocompr.robinlovelace.net)
+  * [Edzer Pebesma, Roger Bivand: Spatial Data Science](https://keen-swartz-3146c4.netlify.com)
+
+### The workplan
+___
+
+(Definitively a) Preliminary schedule:
+
+#### Day 1 - Monday
+
+* [Introduction](pre_intro.html) - eh
+* [Introduction: Plotting spatial data](pre_ggplot2.html) - eh
+
+#### Day 2 - Tuesday
+
+* 
+* 
+
+
+#### Day 3 - Wednesday
+
+* 
+* 
+* [Exercises using DATRAS data](pre_case.html) - eh
+
+#### Day 4 - Thursday
+
+* 
+* 
+
+
+#### Day 5 - Friday
+
+* 
+* 
+
+### Bits and pieces
+___
+
+
+### Potential projects
+___
+
+
+### References
+___
+
+Web page source is found at [https://github.com/fishvice/spatialr](https://github.com/fishvice/spatialr).
