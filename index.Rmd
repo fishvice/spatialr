@@ -56,8 +56,8 @@ ___
 
 #### Day 1 - Monday
 
-* [Introduction](pre_intro.html) - eh
-* [Introduction: Plotting spatial data](pre_ggplot2.html) - eh
+* 
+* 
 
 #### Day 2 - Tuesday
 
@@ -69,7 +69,7 @@ ___
 
 * 
 * 
-* [Exercises using DATRAS data](pre_case.html) - eh
+* 
 
 #### Day 4 - Thursday
 
