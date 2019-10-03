@@ -15,7 +15,7 @@ You are here: [https://heima.hafro.is/~einarhj/spatialr](https://heima.hafro.is/
 ### Time and location
 ___
 
-__Time__: 2019-11-25 10:00 - 2019-11-29 15:00
+__Time__: 2019-11-25 10:00 - 2019-11-29 14:00
 
 __Location__:
 ```{r, fig.width = 9, fig.height = 3, message = FALSE, echo=FALSE, warning=FALSE}
