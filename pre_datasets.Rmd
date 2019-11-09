@@ -1,0 +1,106 @@
+---
+title: ""
+output:
+  html_document:
+    fig_height: 4
+    fig_width: 8
+    highlight: haddock
+    theme: united
+    toc: yes
+    toc_float: yes
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE)
+```
+
+# Data
+___
+
+#### Needed libraries for this tutorial:
+```{r, message = FALSE, warning = FALSE, results='hide'}
+library(sf)
+library(leaflet)
+library(tidyverse)
+theme_set(theme_grey(base_size = 16))
+```
+
+## Minke
+
+The minke whale dataset contains biological measurements from 192 scientific catches of minke whales between the year 2003 and 2007. The data set contains the following variables:
+
+* **whale.id**: Unique identifier for the whale
+* **date.caught**: the date when the whales was caught
+* **lat**: latitude
+* **lon**: longitude
+* **area**: Derived from location (North/South)
+* **length**: length of the whale
+* **weight**: weight of the whale
+* **age**: age of the whale
+* **sex**: Male or Female
+* **maturity**: maturity status of the whale
+* **stomach.volume**: volume (in liters) of the stomach content
+* **stomach.weight**: weight of the stomach content
+* **year**: the year when the whale was caught
+
+```{r}
+minke <- 
+  read.csv("http://www.hafro.is/~einarhj/data/minke.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+```
+
+
+## IESSNS 2019 survey
+
+### trail
+
+Dataset contains VMS tracks of 5 vessels that participated in IESSNS 2019 survey (often named the Pelagic Mackerel Survey). The variables are:
+
+* **vessel**: The vessel name
+* **time**: Time in UTC
+* **lon**: Degrees longitude
+* **lat**: Degrees latitute
+* **speed**: Vessel speed in knots
+* **heading**: Vessel heading in dregrees
+
+```{r}
+trail <- 
+  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/trail.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+trail %>% glimpse()
+```
+
+### tows
+
+Dataset contains pre-determined pelagic trawl stations. The variables are:
+
+* **activity**: Some information on the type of tow
+* **lon**: Degrees longitude
+* **lat**: Degrees latitute
+
+```{r}
+tows <- 
+  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/tows.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+tows %>% glimpse()
+```
+
+### strata
+
+Dataset contains the survey stratas (used when calculating the stratified abundance/biomass indices). The variables are:
+
+* **lon**: Degrees longitude
+* **lat**: Degrees latitute
+* **strata**: Numerical indicating strata number
+
+```{r}
+strata <- 
+  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/strata.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+strata %>% glimpse()
+```
