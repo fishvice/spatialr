@@ -82,11 +82,20 @@ ___
 * 
 * 
 
+### Yet unordered presentations
+
+The stuff below will be assigned to specific dates above
+
+* [Coordinate Reference Systems (CRSs)](crs.html)
+* [Interactive plots](pre_interactive.html)
+
+* [ggplot](pre_ggplot.html)
+
 
 ### Bits and pieces
 ___
 
-* [Information of datasets used](pre_datasets.html)
+* [Information of datasets used](datasets_overview.html)
 
 ### Potential projects
 ___

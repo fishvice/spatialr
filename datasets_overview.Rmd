@@ -51,6 +51,16 @@ minke <-
   as_tibble()
 ```
 
+## Datras data
+
+Download available 2019 DATRAS data:
+```{r, eval = FALSE}
+# NOTE: Need to do this from scratch
+read_rds("/net/hafkaldi/export/home/haf/einarhj/prj2/bookdown/datrasdoodle/data/hh_datras.rds") %>% 
+  tidyices::dtrs_tidy_hh() %>% 
+  write_csv("/net/www/export/home/ftp/pub/reiknid/einar/data/datras/hh_datras.csv")
+```
+
 
 ## IESSNS 2019 survey
 
