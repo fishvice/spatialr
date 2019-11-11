@@ -61,6 +61,22 @@ read_rds("/net/hafkaldi/export/home/haf/einarhj/prj2/bookdown/datrasdoodle/data/
   write_csv("/net/www/export/home/ftp/pub/reiknid/einar/data/datras/hh_datras.csv")
 ```
 
+```{r, eval = FALSE}
+library(icesDatras)
+library(tidyices)
+yrs <- 2000:2019
+qts <- c(1, 3)
+hh <- 
+  getDATRAS(record = "HH", survey = "NS-IBTS", years = yrs, quarters = qts) %>% 
+  dtrs_tidy_hh()
+species <- read_csv("ftp://ftp.hafro.is/pub/reiknid/einar/datras_worms.csv")
+hl <- 
+  getDATRAS(record = "HL", survey = "NS-IBTS", years = yrs, quarters = qts) %>% 
+  dtrs_tidy_hl(hh, species)
+write_csv(hh, "/net/www/export/home/ftp/pub/reiknid/einar/data/datras/nsibts_hh.csv", na = "")  
+write_csv(hl, "/net/www/export/home/ftp/pub/reiknid/einar/data/datras/nsibts_hl.csv", na = "")  
+```
+
 
 ## IESSNS 2019 survey
 

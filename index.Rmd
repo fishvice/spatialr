@@ -89,7 +89,7 @@ The stuff below will be assigned to specific dates above
 * [Coordinate Reference Systems (CRSs)](crs.html)
 * [Interactive plots](pre_interactive.html)
 
-* [ggplot](pre_ggplot.html)
+* [ggplot - introduction](pre_ggplot.html)
 
 
 ### Bits and pieces

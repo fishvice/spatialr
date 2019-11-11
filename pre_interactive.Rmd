@@ -5,9 +5,10 @@ output:
     fig_height: 4
     fig_width: 8
     highlight: haddock
-    theme: united
+    theme: cerulean
     toc: yes
     toc_float: yes
+    toc_depth: 4
 ---
 
 
@@ -19,6 +20,7 @@ knitr::opts_chunk$set(warning = FALSE,
 TODO:
 
 * May need a specific section/presentation on colors
+* Fix read_ices_shapes function
 
 
 #### Needed libraries for this tutorial:
@@ -52,6 +54,9 @@ ___
 
 ### Introduction
 
+
+#### The basic construct
+
 Of the various interactive map packages available in R, the `leaflet`-package is the most mature in terms of features and controls. Generating a leaflet map is as simple as:
 
 ```{r, fig.height = 3}
@@ -82,6 +87,8 @@ Repeat the above command using your favorite location
 </div>
 
 
+#### Data input
+
 Leaflet can take as data input one of the following forms:
 
 * data.frames containing coordinates
@@ -108,8 +115,7 @@ minke %>%
              radius = 10000)  # radius in meters
 ```
 
-
-
+#### Layer calls and arguements
 
 The syntax used to call a variable in leaflet differs from that done in ggplot, in leaflet one always needs the prefix "~" in front of the variable name. And, instead of having the x,y argument pairs in ggplot, in leaflet the pairs are lng,lat.
 
@@ -170,8 +176,7 @@ minke %>%
 </div>
 </div>
 
-
-
+#### Colours - introduction
 
 Lets try to distinguish the samples by sex using the argument color. A spoiled ggplot-user may try this:
 
@@ -219,7 +224,7 @@ m %>%
 If the object is of class `sf` (or `sp`) one does not need to specify the lng or lat (so same as when generating sf-plots or geom_sf-plots):
 
 ```{r, fig.height = 3, fig.width = 4}
-minke <- 
+minke.sf <- 
   minke %>% 
   st_as_sf(coords = c("lon", "lat"),
            crs = 4326,
@@ -228,10 +233,10 @@ minke <-
 
 ```{r, fig.height = 3, fig.width = 4, eval = FALSE}
 # NOT RUN
-minke %>% 
+minke.sf %>% 
   leaflet() %>% 
   addTiles() %>% 
-             # note: no arguement lng nor lat used
+  # note: no arguement lng nor lat used
   addCircles(color = ~pal(sex),
              radius = 10000) %>% 
   addLegend("bottomleft",
@@ -245,7 +250,7 @@ As with ggplot, one can specify the data used from within a layer-call:
 # NOT RUN
 leaflet() %>% 
   addTiles() %>% 
-  addCircles(data = minke,
+  addCircles(data = minke.sf,
              color = ~pal(sex),
              radius = 10000) %>% 
   addLegend("bottomleft",
@@ -260,7 +265,11 @@ Note however that one needs to specify explicitly the "domain" within the `r cl(
 
 TODO: Find a nice global bottom depth shaded relief map, preferably in grey-tone scale.
 
-The `r cl("addTiles")`-function provides a reference background to spatial maps, the default being openstreetmap-tiles. That background may not be the most suitable for oceanographic data we are most likely confronted with. The `r cl("addProviderTiles")`-function provides a quick access to some free third-party basemaps that are encapsulated in the "providers"-list, a data object in the leaflet-package. 
+
+
+The `r cl("addTiles")`-function provides a reference background to spatial maps, the default being [openstreetmap](https://www.openstreetmap.org)-tiles. That background may not be the most suitable for oceanographic data we are most likely confronted with. The `r cl("addProviderTiles")`-function provides a quick access to some free third-party basemaps that are encapsulated in the "providers"-list, a data object in the leaflet-package. 
+
+#### Leaflet build-in alternatives
 
 Some potential ocean background could be (for a full sneak-preview see [here](http://leaflet-extras.github.io/leaflet-providers/preview)):
 
@@ -275,6 +284,38 @@ m %>% addProviderTiles(providers$Esri.WorldImagery)
 ```{r, fig.height = 1}
 m %>% addProviderTiles(providers$Esri.OceanBasemap)
 ```
+
+#### Alternatives
+
+Some recent maps tiles of potential use as backgrounds for marine data can be found on [NOAA map homepage](https://noaa.maps.arcgis.com/home). Example for calling these tiles are:
+
+```{r, eval = FALSE}
+# NOT RUN
+
+# Create a function, just a wrapper around a long url
+addTiles_noaa2 <- function(map) {
+  map %>%
+    addTiles(url = "https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/GEBCO_2019_basemap_ncei/MapServer/tile/{z}/{y}/{x}")
+}
+addTiles_noaa3 <- function(map) {
+  map %>%
+    addTiles(url = "https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/web_mercator_gebco_2019_contours/MapServer/tile/{z}/{y}/{x}")
+}
+m <- leaflet() %>% setView(lng = 0, lat = 60, zoom = 3)
+m %>% 
+  addTiles_noaa2() %>% 
+  addTiles_noaa3()
+```
+
+```{r, echo = FALSE, eval = FALSE}
+# Not responding
+#addTiles_noaa1 <- function(map) {
+#  map %>% 
+#    addTiles(url = "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_global_mosaic_hillshade/ImageServer/tile/{z}/{y}/{x}")
+#}
+```
+
+#### Own tiles - and layer control
 
 If one has access to a server one could even attempt to provide ones own tiles, like this bottom topography shaded relief map:
 ```{r, fig.height = 4}
@@ -302,6 +343,8 @@ m %>%
                    options = layersControlOptions(collapsed = FALSE))
 ```
 
+#### No tiles
+
 One can skip the call to background tiles and provide ones own reference background:
 
 ```{r, fig.height = 3, fig.width = 4}
@@ -316,7 +359,142 @@ leaflet() %>%
 
 This may often be the best option, because colourful background may create a distraction from the main data that supposedly contains the message for the reader.
 
-### Lines
+
+<div class="panel panel-info">
+<div class="panel-heading">Exercise</div>
+<div class="panel-body">
+
+Use the minke data, or any other data of your liking and experiment with various basemaps of choice. Give some thought on:
+
+* The use of colours for the data, given the different backgrounds chosen.
+* What backgrounds are useful vs those that act as a distraction from the message you are trying to convey.
+
+</div>
+</div>
+
+
+### Polygons and lines
+
+
+```{r}
+hh <- 
+  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/datras/nsibts_hh.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+hl <- 
+  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/datras/nsibts_hl.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+
+# some common species
+mysp <- c("Scomber scombrus")
+hh %>% 
+  filter(year == 2019) %>% 
+  select(id, lon = shootlong, lat = shootlat) %>% 
+  left_join(hl %>% filter(latin == mysp)) %>% 
+  group_by(id, lon, lat) %>% 
+  summarise(n = sum(n, na.rm = TRUE)) %>% 
+  mutate(nr = ifelse(n > 1000, 1000, n)) %>% 
+  st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addCircles(radius = 1000,
+             color = "blue",
+             weight = 0,
+             fillOpacity = 1) %>% 
+  addCircles(radius = ~nr * 100,
+             label = ~as.character(round(n)),
+             weight = 0,
+             color = "red")
+
+```
+
+
+
+Lets use the ICES ecoregions as an example demonstrating polygons
+
+```{r, fig.width = 5}
+egos <- 
+  read_sf("ftp://ftp.hafro.is/pub/reiknid/einar/shapes/ecoregions.gpkg")
+
+
+leaflet(egos) %>%
+  addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.5,
+              fillColor = ~colorQuantile("YlOrRd", shape_area)(shape_area),
+              highlightOptions = highlightOptions(color = "white", weight = 2,
+                                                  bringToFront = TRUE))
+```
+
+
+```{r eval = FALSE, echo = FALSE}
+# some trials on colours
+leaflet(egos) %>%
+  addPolygons(color = ~colorQuantile("YlOrRd", shape_area)(shape_area),
+              #color = "#444444", 
+              weight = 1, 
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 1.0)
+
+leaflet(egos) %>%
+  addPolygons(color = ~colorFactor("viridis", ecoregion)(ecoregion),
+              #color = "#444444", 
+              weight = 1, 
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 1.0)
+
+mycol <- sf.colors(n = 17)
+
+m <-
+  leaflet(egos) %>%
+  addPolygons(color = mycol,
+              #color = "#444444", 
+              weight = 1, 
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 1.0)
+
+m %>% 
+  addLegend(colors = mycol,
+            labels = egos$ecoregion,
+            opacity = 1)
+
+
+
+col <- colour_values(egos$shape_area)
+
+leaflet(egos) %>%
+  addPolygons(fillColor = col,
+              #fillColor = ~colorQuantile("YlOrRd", shape_area)(shape_area),
+              label = ~ecoregion,
+              color = "black",
+              weight = 1,
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 0.5,
+              highlightOptions = highlightOptions(color = "white",
+                                                  weight = 2,
+                                                  bringToFront = TRUE)) %>% 
+  addLegend("bottomright", fillColor = col, labels = ~egos$shape_area,
+            title = "Egos",
+            opacity = 1)
+
+library(colourvalues)
+?colour_values
+
+pal <- colorQuantile("YlOrRd", egos$shape_area)
+
+
+
+```
+
+
+### Case example
+
+
 
 Lets take the [cruise tracks](datasets_overview.html# trail) from the 2019 pelagic mackerel survey.
 ```{r}
@@ -340,14 +518,14 @@ trail %>%
   leaflet() %>% 
   addTiles() %>% 
   addPolylines(#data = trail,
-               color = ~pal(vessel),
-               opacity = 1,
-               weight = 3) %>% 
+    color = ~pal(vessel),
+    opacity = 1,
+    weight = 3) %>% 
   addLegend("bottomleft",
             title  = 'Vessels',
             pal = pal,
             values = ~vessel)
-  
+
 ```
 
 ### Line-segments
@@ -367,9 +545,9 @@ hh %>%
          lon_end = haullong,
          lat_end = haullat) %>% 
   pivot_longer(-id, 
-    names_to = c(".value", "action"), 
-    names_sep = "_"#, 
-    #values_drop_na = TRUE
+               names_to = c(".value", "action"), 
+               names_sep = "_"#, 
+               #values_drop_na = TRUE
   ) %>% 
   st_as_sf(coords = c("lon", "lat"),
            crs = 4326) %>% 
@@ -462,7 +640,7 @@ for (i in 1:2) {
 
 l %>%
   addLayersControl(baseGroups = prov$name,
-    options = layersControlOptions(collapsed = FALSE))
+                   options = layersControlOptions(collapsed = FALSE))
 ```
 
 
