@@ -158,7 +158,7 @@ read_ices_shapes <- function(url) {
 url <- "http://gis.ices.dk/shapefiles/Nephrops_FU.zip"
 read_ices_shapes(url) %>% 
   rename_all(tolower) %>% 
-  st_write("/net/www/export/home/ftp/pub/data/shapes/nephrops_fu.gpkg")
+  write_sf("/net/www/export/home/ftp/pub/data/shapes/nephrops_fu.gpkg")
 fu <- st_read("ftp://ftp.hafro.is/pub/data/shapes/nephrops_fu.gpkg")
 ```
 
@@ -171,7 +171,7 @@ read_ices_shapes(url) %>%
   st_transform(crs = 4326) %>% 
   ms_simplify(keep = 0.05,
               snap = TRUE) %>% 
-  st_write("/net/www/export/home/ftp/pub/data/shapes/ices_areas.gpkg")
+  write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_areas.gpkg")
 areas <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_areas.gpkg")
 ```
 
@@ -183,7 +183,7 @@ read_ices_shapes(url) %>%
   rename_all(tolower) %>% 
   ms_simplify(keep = 0.05,
               snap = TRUE) %>% 
-  st_write("/net/www/export/home/ftp/pub/data/shapes/ices_ecoregions.gpkg")
+  write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_ecoregions.gpkg")
 egos <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg")
 ```
 
@@ -194,7 +194,7 @@ url <- "http://gis.ices.dk/shapefiles/OSPAR_Subregions.zip"
 read_ices_shapes(url) %>% 
   rename_all(tolower) %>% 
   st_transform(crs = 4326) %>% 
-  st_write("/net/www/export/home/ftp/pub/data/shapes/ospar.gpkg")
+  write_sf("/net/www/export/home/ftp/pub/data/shapes/ospar.gpkg")
 ospar <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ospar.gpkg")
 ```
 
@@ -208,7 +208,7 @@ read_ices_shapes(url) %>%
   ms_filter_islands(min_area = 1e5) %>% 
   ms_simplify(keep = 0.05,
               snap = TRUE) %>% 
-  st_write("/net/www/export/home/ftp/pub/data/shapes/helcom.gpkg")
+  write_sf("/net/www/export/home/ftp/pub/data/shapes/helcom.gpkg")
 helcom <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/helcom.gpkg")
 ```
 
@@ -218,7 +218,7 @@ helcom <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/helcom.gpkg")
 url <- "http://gis.ices.dk/shapefiles/ICES_rectangles.zip" 
 read_ices_shapes(url) %>% 
   rename_all(tolower) %>% 
-  st_write("/net/www/export/home/ftp/pub/data/shapes/ices_rectangles.gpkg")
+  write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_rectangles.gpkg")
 ```
 
 #### ICES statistical rectangles
@@ -228,7 +228,7 @@ url <- "http://gis.ices.dk/shapefiles/ICES_SubStatrec.zip"
 read_ices_shapes(url) %>% 
   rename_all(tolower) %>% 
   st_transform(crs = 4326) %>% 
-  st_write("/net/www/export/home/ftp/pub/data/shapes/ices_subrectangles.gpkg")
+  write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_subrectangles.gpkg")
 ```
 
 
