@@ -1,0 +1,227 @@
+---
+title: "The sf class"
+output:
+  html_document:
+    fig_height: 4
+    fig_width: 8
+    highlight: haddock
+    theme: cerulean
+    toc: yes
+    toc_float: yes
+---
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Vector data in R
+In the R language there are two groups of classes to deal with vector data.
+
+a) The *Spatial* class, implemented in the *sp* package (released in 2005).
+b) The newer *sf* class, implemented in the *sf* package (released in 2016).
+
+In this course we will focus mainly on the *sf* class, which have many advantages over the *sp* class.  Still, it is useful to know about the *sp* class, in particular because may useful packages (still) use sp objects (and many packages may not be upgraded to accept sf objects).
+
+
+# Simple feature geometries
+A *feature* refers to any object or observation in the real world.  Features have:
+	a) a geometry, indicating where in Earth the feature is located,
+	b) attributes, describing it properties.
+
+In *simple features*, geometries are represented by points and straight lines.
+
+*Simple features access* is an international open standard by the Open Geospatial Consortium (OGC) and ISO (ISO 19125) that specifies a common storage and access model for two-dimensional geometries (point, lines, polygons).  It specifies a unified way to represent spatial (vector) data.
+
+The seven most common simple features:
+
+| Type               | Description                                    |
+|--------------------|------------------------------------------------|
+| POINT              | Zero-dimensional geometry with a single point  |
+| LINESTRING         | Sequence of points connected by straight lines |
+| POLYGON            | Sequence of points forming a closed ring       |
+| MULTIPOINT         | Set of points                                  |
+| MULTILINESTRING    | Set of linestrings                             |
+| MULTIPOLYGON       | Set of polygons                                |
+| GEOMETRYCOLLECTION | Set of geometries of any type                  |
+|                    |                                                |
+
+```{r out.width = "50%", echo= FALSE, fig.cap = "The seven main simple features are implemented in the sf package"}
+knitr::include_graphics("./img/sf_classes.png")
+```
+
+There are more (CIRCULARSTRING, SURFACE, TRIANGLE), but we will not deal with them.
+
+
+# Simple features in R
+
+In R, simple features are provided by the **sf** package.
+
+In a nutshell, *sf* objects are extensions of data.frames or tibbles.  Each row is one feature, this is, one spatial object that could have associated data.
+
+An *sf* objects may have one or more columns with data for each of the features, and a "special" column usually named "geometry" or "geom" (but can have any name) with the geometry of the feature (its type and coordinates).
+
+The geometry is a ~list column~ of class *sfc*.  It has a bounding box and a coordinate reference system as attributes, and a class attribute pointing out the common type (or GEOMETRY in case of a mix).
+
+Each element in the geometry column is a single simple feature geometry is of class *sfg* (single feature geometry), with further classes pointing out dimension and type.
+
+```{r out.width = "100%", echo= FALSE}
+knitr::include_graphics("./img/sf_structure.png")
+```
+
+This all sounds complicated, but it is not.  Let's build a simple *sf* object from scratch.  First, load the packages we will use.
+
+```{r setup}
+library(tidyverse)
+library(sf)
+```
+
+Now we will create an sf object with two point features.
+```{r }
+# Create the geometry for individual features. In this case, two points.1
+p1 <- st_point(c(2, 3))
+p2 <- st_point(c(1, 4))
+
+class(p1) # Class "sfg" and "POINT"
+
+# Now let's make a single feature geometry column
+pts <- st_sfc(p1, p2)
+class(pts)
+
+pts # Now it has a bounding box and a projection (CRS)
+
+# Attach some data for the points and get an sf object
+mydata <- tibble(a = c (10, 20), b = c ("A", "B"))
+
+mysf <- st_as_sf(mydata, geometry = pts)
+class(mysf)
+
+mysf
+
+```
+
+Here we used the *st_point()* function to convert a vector into an *sfg* object.  To build *sfg* objects for other geometries, you can use the other available builder functions:
+
+| Function              | Required input                                            |
+|-----------------------|-----------------------------------------------------------|
+| st_point              | numeric vector (or one-row matrix)                        |
+| st_multipoint         | numeric matrix with points in row                         |
+| st_linestring         | numeric matrix with points in row                         |
+| st_multilinestring    | list with numeric matrices with points in rows            |
+| st_polygon            | list with numeric matrices with points in rows            |
+| st_multipolygon       | list of lists with numeric matrices                       |
+| st_geometrycollection | list with (non-geometrycollection) simple feature objects |
+
+Occasionally you may need to build *sf* objects from scratch.  More often though you will have data with coordinates and will want to convert that data into an *sf* object.  We will do this, but first let's learn a bit more about sf objects.
+
+# A deeper look into sf objects
+Let's take a look at a "real" sf object, in this case the ICES areas.  
+
+
+country polygons for the entire globe from the **rnaturalearth** package (which provides access to the Natural Earth datasets available at https://www.naturalearthdata.com/).  To make things easier, we will select a few columns.
+
+
+```{r }
+library (sf)
+ices_areas <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_areas.gpkg")
+
+class(ices_areas)
+
+head (ices_areas)
+
+```
+Note that the object **area** is of class tibble (the "enhanced" data.frames from the tidyverse) and sf.  In addition, sf objects can also be data frames.
+
+When you examine the object, first you can see the metadata, including:
+- geometry type (in this case MULTIPOLYGON)
+- dimension (XY for 2D data)
+- bounding box (minimum and maximum x and y values)
+- epsg and projstring: the coordinate reference system of the data (more on this later)
+
+Next you can see the data, including columns with the subarea, division, and area in km2.  This is what is know as attributes.  There is also a an additional column usually named "geometry" or "geom" (although any name could be used) where the geographical data is stored.
+
+For a quick look, we can use the **plot()** function.  This uses R's base graphs.  Remember that R has at least three independent graphic systems: base graphs, ggplot, and lattice.  In this course we will use base graphs and ggplot.
+
+By default, **plot()** makes a map for each column.
+
+```{r }
+plot(ices_areas)
+
+```
+
+To only plot the geometry we can do the following:
+
+```{r }
+
+plot(ices_areas %>%
+	st_geometry())
+
+```
+Here, we used the *st_geometry()* function to extract the geometry of the sf object, dropping the attributes (i.e. the "non spatial" data).
+
+Better, lets use the **ggplot2** package with *geom_sf()*.
+
+```{r }
+
+ices_areas %>%
+  ggplot() +
+  theme_bw() +
+  geom_sf(aes(fill = Area_km2)) +
+  labs(fill = "Area (km2)")
+
+```
+In the **ices_areas* object, the geometry type is a MULTIPOLYGON.  This is needed because even though individual ICES areas are continuous, often they contain islands.  The geometry of the islands is the included, with the direction of points (clockwise or anticlockwise) indicating the topology.  
+
+```{r }
+ices_areas$geom[[4]]
+
+```
+
+# Making your own sf objects
+Very often the first step in our spatial analysis and mapping is to convert external objects into *sf* objects.  This is done using the *st_as_sf()* function.
+
+In the simplest case, our data is comprised of individual point observations, with associated data.  In this case an *sf* object with geometry type POINT will suffice.  In the minke data set, we have observations for individual whales.
+
+
+```{r }
+minke <- read_csv("./data/minke.csv")
+minke
+
+minke <- read_csv("./data/minke.csv") %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+minke
+
+```
+We used the coords argument passing the column names with the longitude (or x coordinate) *first*, and the latitude (or y corrdinate) *second* (this is a common mistake).  We also specifed the coordinate reference system (4326 is the ESPG code for unprojected data using the WSG84 datum),
+
+Note that the "lon" and "lat" columns have disappeared and instead we have the "geometry" column.  If we want to keep a copy of the "lon" and "lat" columns we can use the argument remove=FALSE.
+
+
+
+Another example.  Here we have VMS data from some bottom trawls.  The data contains a series of locations (latitude and longitude) during each trawl.  If we do the same as in the mike dataset, we obtain an *sf* object with POINT geometry.
+
+```{r }
+vms <- read_csv("./data/vms.csv") %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+vms
+
+ggplot() +
+  geom_sf(data=vms, alpha=0.25)
+
+```
+
+But this is not what we want.  Rather than just points, we want to join the points from each haul to form a line.  To do this we need to group the points by the ID column, and then use **st_cast** to convert the group of points into linestrings.
+
+
+```{r }
+vms <- read_csv("./data/vms.csv") %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  group_by(id) %>%
+  summarise(do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+vms
+
+ggplot() +
+  geom_sf(data=vms, aes(colour=as.factor(id))) +
+  theme(legend.position = "none")
+
+```
