@@ -13,7 +13,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Vector data in R
+## Vector data in R
 In the R language there are two groups of classes to deal with vector data.
 
 a) The *Spatial* class, implemented in the *sp* package (released in 2005).
@@ -22,14 +22,21 @@ b) The newer *sf* class, implemented in the *sf* package (released in 2016).
 In this course we will focus mainly on the *sf* class, which have many advantages over the *sp* class.  Still, it is useful to know about the *sp* class, in particular because may useful packages (still) use sp objects (and many packages may not be upgraded to accept sf objects).
 
 
-# Simple feature geometries
+## Simple feature geometries
 A *feature* refers to any object or observation in the real world.  Features have:
 	a) a geometry, indicating where in Earth the feature is located,
 	b) attributes, describing it properties.
 
-In *simple features*, geometries are represented by points and straight lines.
+In *simple features*, all geometric attributes are described by points and straight lines (no curves).
 
-*Simple features access* is an international open standard by the Open Geospatial Consortium (OGC) and ISO (ISO 19125) that specifies a common storage and access model for two-dimensional geometries (point, lines, polygons).  It specifies a unified way to represent spatial (vector) data.
+*Simple features access* is an international open standard by the Open Geospatial Consortium (OGC) and ISO (ISO 19125) that specifies a common storage and access model for two-dimensional geometries (point, lines, polygons).  
+
+- It specifies a unified way to represent spatial (vector) data.
+- It also specifices a number of topological metrics, predicates and operations.
+- Has well-known text (WKT) and binary (WKB) encoding.
+- WKB used by spatial databases (SQLite, PostGIS, etc.)
+- It supported by OSGEo libraries (GDAL, GEOS), GeoJSON and GeoSPARQL.
+
 
 The seven most common simple features:
 
@@ -44,14 +51,14 @@ The seven most common simple features:
 | GEOMETRYCOLLECTION | Set of geometries of any type                  |
 |                    |                                                |
 
-```{r out.width = "50%", echo= FALSE, fig.cap = "The seven main simple features are implemented in the sf package"}
+```{r out.width = "50%", echo= FALSE}
 knitr::include_graphics("./img/sf_classes.png")
 ```
 
-There are more (CIRCULARSTRING, SURFACE, TRIANGLE), but we will not deal with them.
+There are more (CIRCULARSTRING, SURFACE, TRIANGLE, for a total of 18 features), but they are not supported by the **sf** package and we will not deal with them.
 
 
-# Simple features in R
+## Simple features in R
 
 In R, simple features are provided by the **sf** package.
 
@@ -74,7 +81,7 @@ library(tidyverse)
 library(sf)
 ```
 
-Now we will create an sf object with two point features.
+Now we will create an sf objecyyt with two point features.
 ```{r }
 # Create the geometry for individual features. In this case, two points.1
 p1 <- st_point(c(2, 3))
@@ -110,14 +117,10 @@ Here we used the *st_point()* function to convert a vector into an *sfg* object.
 | st_multipolygon       | list of lists with numeric matrices                       |
 | st_geometrycollection | list with (non-geometrycollection) simple feature objects |
 
-Occasionally you may need to build *sf* objects from scratch.  More often though you will have data with coordinates and will want to convert that data into an *sf* object.  We will do this, but first let's learn a bit more about sf objects.
+Rarelly you will need to build *sf* objects from scratch.  More often you will have data with coordinates and will want to convert that data into an *sf* object.  We will do this, but first let's learn a bit more about sf objects.
 
-# A deeper look into sf objects
+## A deeper look into sf objects
 Let's take a look at a "real" sf object, in this case the ICES areas.  
-
-
-country polygons for the entire globe from the **rnaturalearth** package (which provides access to the Natural Earth datasets available at https://www.naturalearthdata.com/).  To make things easier, we will select a few columns.
-
 
 ```{r }
 library (sf)
@@ -128,15 +131,60 @@ class(ices_areas)
 head (ices_areas)
 
 ```
+
 Note that the object **area** is of class tibble (the "enhanced" data.frames from the tidyverse) and sf.  In addition, sf objects can also be data frames.
 
 When you examine the object, first you can see the metadata, including:
-- geometry type (in this case MULTIPOLYGON)
+- geometry type (in this case POLYGON)
 - dimension (XY for 2D data)
 - bounding box (minimum and maximum x and y values)
 - epsg and projstring: the coordinate reference system of the data (more on this later)
 
-Next you can see the data, including columns with the subarea, division, and area in km2.  This is what is know as attributes.  There is also a an additional column usually named "geometry" or "geom" (although any name could be used) where the geographical data is stored.
+Next you can see the data, including columns with the subarea, division, and area in km2.  This is what is know as attributes.  There is also a an additional column usually named "geometry" or "geom" (although any name could be used) where the geometry (i.e. coordinates and topology) are stored.
+
+We can extract the metadata elements like this:
+
+```{r}
+st_geometry_type(ices_areas)
+```
+
+In this case the 20 features in this data set have the same geometry (POLYGON).
+
+This gets the coordinate reference system:
+```{r}
+st_crs(ices_areas)
+```
+
+This gets the bounding box:
+```{r}
+st_bbox(ices_areas)
+
+```
+
+We can also use the usual functions in *sf* objects:
+```{r}
+nrow(ices_areas)
+ncol(ices_areas)
+names(ices_areas)
+```
+
+
+#### Exercise
+
+<div class="panel panel-warning">
+<div class="panel-heading">Exercise</div>
+<div class="panel-body">
+
+1. Examine the metadata of the data sets in the following locations:
+
+ftp://ftp.hafro.is/pub/data/shapes/helcom.gpkg
+ftp://ftp.hafro.is/pub/data/shapes/ospar.gpkg
+
+2. What is the difference between the *st_read* and the  *read_sf()* functions?
+
+</div>
+</div>
+
 
 For a quick look, we can use the **plot()** function.  This uses R's base graphs.  Remember that R has at least three independent graphic systems: base graphs, ggplot, and lattice.  In this course we will use base graphs and ggplot.
 
@@ -157,7 +205,7 @@ plot(ices_areas %>%
 ```
 Here, we used the *st_geometry()* function to extract the geometry of the sf object, dropping the attributes (i.e. the "non spatial" data).
 
-Better, lets use the **ggplot2** package with *geom_sf()*.
+Let's try the **ggplot2** package with *geom_sf()*.
 
 ```{r }
 
@@ -168,7 +216,8 @@ ices_areas %>%
   labs(fill = "Area (km2)")
 
 ```
-In the *ices_areas* object, the geometry type is a MULTIPOLYGON.  This is needed because even though individual ICES areas are continuous, often they contain islands.  The geometry of the islands is included, with the direction of points (clockwise or anticlockwise) indicating the topology.  
+
+In the *ices_areas* object, the geometry type is a POLYGON, as individual ICES areas are continuous.  Because they often they contain islands, the geometry of the islands is also included.  In this cases the direction of points (clockwise or anticlockwise) indicating the topology.  
 
 ```{r }
 ices_areas$geom[[4]]
