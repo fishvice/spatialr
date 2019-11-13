@@ -168,7 +168,7 @@ ices_areas %>%
   labs(fill = "Area (km2)")
 
 ```
-In the **ices_areas* object, the geometry type is a MULTIPOLYGON.  This is needed because even though individual ICES areas are continuous, often they contain islands.  The geometry of the islands is the included, with the direction of points (clockwise or anticlockwise) indicating the topology.  
+In the *ices_areas* object, the geometry type is a MULTIPOLYGON.  This is needed because even though individual ICES areas are continuous, often they contain islands.  The geometry of the islands is included, with the direction of points (clockwise or anticlockwise) indicating the topology.  
 
 ```{r }
 ices_areas$geom[[4]]
@@ -182,8 +182,12 @@ In the simplest case, our data is comprised of individual point observations, wi
 
 
 ```{r }
-minke <- read_csv("./data/minke.csv")
+
+minke <- read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv")
+
 minke
+
+minke <- read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv") 
 
 minke <- read_csv("./data/minke.csv") %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
@@ -199,7 +203,7 @@ Note that the "lon" and "lat" columns have disappeared and instead we have the "
 Another example.  Here we have VMS data from some bottom trawls.  The data contains a series of locations (latitude and longitude) during each trawl.  If we do the same as in the mike dataset, we obtain an *sf* object with POINT geometry.
 
 ```{r }
-vms <- read_csv("./data/vms.csv") %>%
+vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/small_vms.csv") %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
 vms
 
@@ -212,7 +216,7 @@ But this is not what we want.  Rather than just points, we want to join the poin
 
 
 ```{r }
-vms <- read_csv("./data/vms.csv") %>%
+vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/small_vms.csv") %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
   group_by(id) %>%
   summarise(do_union = FALSE) %>%
