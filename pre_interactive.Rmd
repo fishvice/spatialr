@@ -5,16 +5,15 @@ output:
     fig_height: 4
     fig_width: 8
     highlight: haddock
-    theme: cerulean
+    theme: united
     toc: yes
     toc_float: yes
     toc_depth: 4
 ---
 
 
-```{r, echo = FALSE}
-knitr::opts_chunk$set(warning = FALSE,
-                      message = FALSE)
+```{r, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
 TODO:
@@ -25,7 +24,7 @@ TODO:
 
 #### Needed libraries for this tutorial:
 
-```{r, message = FALSE, warning = FALSE, results='hide'}
+```{r setup}
 library(maps)
 library(sf)
 library(htmltools)
@@ -99,7 +98,7 @@ Lets use the minke-dataset to demonstrate the basic leaflet components:
 
 ```{r}
 minke <- 
-  read.csv("http://www.hafro.is/~einarhj/data/minke.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble()
 ```
@@ -416,9 +415,7 @@ Lets use the ICES ecoregions as an example demonstrating polygons
 
 ```{r, fig.width = 5}
 egos <- 
-  read_sf("ftp://ftp.hafro.is/pub/reiknid/einar/shapes/ecoregions.gpkg")
-
-
+  read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg")
 leaflet(egos) %>%
   addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
               opacity = 1.0, fillOpacity = 0.5,
@@ -499,7 +496,7 @@ pal <- colorQuantile("YlOrRd", egos$shape_area)
 Lets take the [cruise tracks](datasets_overview.html# trail) from the 2019 pelagic mackerel survey.
 ```{r}
 trail <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/trail.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_trail.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble() %>% 
   st_as_sf(coords = c("lon", "lat"),
@@ -561,11 +558,13 @@ hh %>%
 ```
 
 
-## Case example - Vessel trails of the 2019 Nordic pelagic survey
+## Case examples
+
+### Vessel trails of the 2019 Nordic pelagic survey
 
 ```{r}
 strata <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/strata.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_strata.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble()
 
@@ -579,7 +578,7 @@ strata.sf <-
   st_cast("POLYGON")
 
 trail <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/trail.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_trail.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble()
 trail.sf <-
@@ -592,7 +591,7 @@ trail.sf <-
 #mutate(vessel = as.factor(vessel))
 
 tows <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/tows.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_tows.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble() %>% 
   st_as_sf(coords = c("lon", "lat"),
@@ -624,25 +623,53 @@ leaflet() %>%
 
 ```
 
-
-## On basemaps
+### VMS raster image
 
 ```{r}
-prov <-
-  tibble(name = c("World Imagery", "World Ocean Base"),
-         url = c("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                 "https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}"))
-#url <- "https://server.arcgisonline.com/ArcGIS/rest/services/Polar/Arctic_ImageryMapServer/tile/{z}/{y}/{x}"
-l <- leaflet() %>% setView(5,60,5)
-for (i in 1:2) {
-  l <- l %>% addTiles(prov$url[i], group = prov$name[i])
-}
-
-l %>%
-  addLayersControl(baseGroups = prov$name,
-                   options = layersControlOptions(collapsed = FALSE))
+nephrops  <- raster::raster("ftp://ftp.hafro.is/pub/data/rasters/nephrops.tif")
+inf <- viridis::inferno(12, alpha = 1, begin = 0, end = 1, direction = -1)
+pal <- leaflet::colorNumeric(inf, raster::values(nephrops), na.color = "transparent")
+leaflet() %>%
+  setView(lng = -19, lat = 65, zoom = 6) %>%
+  addProviderTiles(providers$Esri.WorldImagery) %>% 
+  addRasterImage(nephrops, colors = pal, opacity = 1, group = "Nephrops trawl",
+                 maxBytes = Inf)
 ```
 
+### VMS ICES
+
+```{r}
+d <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/OSPAR_intensity_Otter_2015.gpkg")
+
+```
+
+```{r, eval = FALSE}
+# NOTRUN: This is a bit too much for leaflet
+pal <- leaflet::colorNumeric(inf, d$FishingH, na.color = "transparent")
+leaflet() %>% 
+  addProviderTiles(provider = providers$Esri.WorldImagery) %>% 
+  addPolygons(data = d,
+              fillColor = ~pal(FishingH),
+              stroke = 0,
+              fillOpacity = 1)
+```
+
+```{r, echo = FALSE}
+key <- key <- "pk.eyJ1IjoiZmlzaHZpY2UiLCJhIjoiY2p0MXQ5dThpMDZqeDQ5bHM0MGx4dHI5cyJ9.Fed_z7mv_TgTWDRjiavU3A"
+```
+
+
+
+```{r}
+library(mapdeck)
+mapdeck(token = key) %>%
+  add_polygon(data = d %>% 
+                filter(SurfSAR > 0) %>% 
+                mutate(SurfSAR = ifelse(SurfSAR > 10, -10, -round(SurfSAR, 1))),
+              tooltip = "SurfSAR",
+              fill_colour = "SurfSAR",
+              palette = "inferno")
+```
 
 
 

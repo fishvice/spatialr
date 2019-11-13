@@ -10,18 +10,35 @@ output:
     toc_float: yes
 ---
 
-```{r, echo = FALSE}
-knitr::opts_chunk$set(warning = FALSE,
-                      message = FALSE)
+```{r, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
+
+# Preamble
+___
+
+The data used as examples in the course are all stored at this location [ftp://ftp.hafro.is/pub/data](ftp://ftp.hafro.is/pub/data). To obtain the path for reading any file into R it is simplest to:
+
+* Go to the site using a browser
+* Find the file of interest
+* Right click on the filename and copy linklocation
+* Paste the path into our R-script
+
+The content of the directory is as follows:
+
+```{bash, echo = FALSE, comment=NA}
+tree  /net/www/export/home/ftp/pub/data
+```
+
+
 
 # Data
 ___
 
-#### Needed libraries for this tutorial:
-```{r, message = FALSE, warning = FALSE, results='hide'}
+```{r setup}
 library(sf)
 library(leaflet)
+library(rmapshaper)
 library(tidyverse)
 theme_set(theme_grey(base_size = 16))
 ```
@@ -44,14 +61,180 @@ The minke whale dataset contains biological measurements from 192 scientific cat
 * **stomach.weight**: weight of the stomach content
 * **year**: the year when the whale was caught
 
-```{r}
+**To read the data into R**:
+
+```{r, eval = FALSE}
 minke <- 
-  read.csv("http://www.hafro.is/~einarhj/data/minke.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/minke.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble()
 ```
 
-## Datras data
+## IESSNS 2019 survey
+
+### trail
+
+Dataset contains VMS tracks of 5 vessels that participated in IESSNS 2019 survey (often named the Pelagic Mackerel Survey). The variables are:
+
+* **vessel**: The vessel name
+* **time**: Time in UTC
+* **lon**: Degrees longitude
+* **lat**: Degrees latitute
+* **speed**: Vessel speed in knots
+* **heading**: Vessel heading in dregrees
+
+```{r, eval = FALSE}
+trail <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_trail.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+trail %>% glimpse()
+```
+
+### tows
+
+Dataset contains pre-determined pelagic trawl stations. The variables are:
+
+* **activity**: Some information on the type of tow
+* **lon**: Degrees longitude
+* **lat**: Degrees latitute
+
+```{r, eval = FALSE}
+tows <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_tows.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+tows %>% glimpse()
+```
+
+### strata
+
+Dataset contains the survey stratas (used when calculating the stratified abundance/biomass indices). The variables are:
+
+* **lon**: Degrees longitude
+* **lat**: Degrees latitute
+* **strata**: Numerical indicating strata number
+
+```{r, eval = FALSE}
+strata <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_strata.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+strata %>% glimpse()
+```
+
+
+# Shapes
+___
+
+### ICES shapes
+
+The following shapes were obtained from gis.ices.dk. The primary purpose for storing them here was:
+
+* Storing them in a single files as "gpkg"-format rather numerous ESRI-shapefiles bundled in a zip-file.
+* Simplifying some very dense files in order to reduce usage of memory space when read into R.
+
+The code shows how the data were obtained, and in case of simplification how they were simplified.
+
+**A little helper function**:
+
+```{r, eval = FALSE}
+read_ices_shapes <- function(url) {
+  td <- tempdir()
+  file.remove(dir(td, full.names = TRUE))
+  tf <- tempfile()
+  download.file(url, tf)
+  fil <- unzip(tf, exdir = td)
+  sp <- sf::read_sf(fil[grep(".shp$", fil)])
+  file.remove(fil)
+  return(sp)
+}
+```
+
+
+#### Nephrops functional units
+
+```{r, eval = FALSE}
+url <- "http://gis.ices.dk/shapefiles/Nephrops_FU.zip"
+read_ices_shapes(url) %>% 
+  rename_all(tolower) %>% 
+  st_write("/net/www/export/home/ftp/pub/data/shapes/nephrops_fu.gpkg")
+fu <- st_read("ftp://ftp.hafro.is/pub/data/shapes/nephrops_fu.gpkg")
+```
+
+#### ICES areas
+
+```{r, eval = FALSE}
+url <- "http://gis.ices.dk/shapefiles/ICES_areas.zip"
+read_ices_shapes(url) %>% 
+  rename_all(tolower) %>% 
+  st_transform(crs = 4326) %>% 
+  ms_simplify(keep = 0.05,
+              snap = TRUE) %>% 
+  st_write("/net/www/export/home/ftp/pub/data/shapes/ices_areas.gpkg")
+areas <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_areas.gpkg")
+```
+
+#### ICES ecoregions
+
+```{r, eval = FALSE}
+url <- "http://gis.ices.dk/shapefiles/ICES_ecoregions.zip"
+read_ices_shapes(url) %>% 
+  rename_all(tolower) %>% 
+  ms_simplify(keep = 0.05,
+              snap = TRUE) %>% 
+  st_write("/net/www/export/home/ftp/pub/data/shapes/ices_ecoregions.gpkg")
+egos <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg")
+```
+
+#### OSPAR (from ICES)
+
+```{r, eval = FALSE}
+url <- "http://gis.ices.dk/shapefiles/OSPAR_Subregions.zip"
+read_ices_shapes(url) %>% 
+  rename_all(tolower) %>% 
+  st_transform(crs = 4326) %>% 
+  st_write("/net/www/export/home/ftp/pub/data/shapes/ospar.gpkg")
+ospar <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ospar.gpkg")
+```
+
+#### HELOM (from ICES)
+
+```{r, eval = FALSE}
+url <- "http://gis.ices.dk/shapefiles/HELCOM_subbasins.zip"
+read_ices_shapes(url) %>% 
+  rename_all(tolower) %>% 
+  st_transform(crs = 4326) %>% 
+  ms_filter_islands(min_area = 1e5) %>% 
+  ms_simplify(keep = 0.05,
+              snap = TRUE) %>% 
+  st_write("/net/www/export/home/ftp/pub/data/shapes/helcom.gpkg")
+helcom <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/helcom.gpkg")
+```
+
+#### ICES statistical rectangles
+
+```{r, eval = FALSE}
+url <- "http://gis.ices.dk/shapefiles/ICES_rectangles.zip" 
+read_ices_shapes(url) %>% 
+  rename_all(tolower) %>% 
+  st_write("/net/www/export/home/ftp/pub/data/shapes/ices_rectangles.gpkg")
+```
+
+#### ICES statistical rectangles
+
+```{r, eval = FALSE}
+url <- "http://gis.ices.dk/shapefiles/ICES_SubStatrec.zip" 
+read_ices_shapes(url) %>% 
+  rename_all(tolower) %>% 
+  st_transform(crs = 4326) %>% 
+  st_write("/net/www/export/home/ftp/pub/data/shapes/ices_subrectangles.gpkg")
+```
+
+
+# Not there yet
+
+### Datras data
 
 Download available 2019 DATRAS data:
 ```{r, eval = FALSE}
@@ -78,55 +261,3 @@ write_csv(hl, "/net/www/export/home/ftp/pub/reiknid/einar/data/datras/nsibts_hl.
 ```
 
 
-## IESSNS 2019 survey
-
-### trail
-
-Dataset contains VMS tracks of 5 vessels that participated in IESSNS 2019 survey (often named the Pelagic Mackerel Survey). The variables are:
-
-* **vessel**: The vessel name
-* **time**: Time in UTC
-* **lon**: Degrees longitude
-* **lat**: Degrees latitute
-* **speed**: Vessel speed in knots
-* **heading**: Vessel heading in dregrees
-
-```{r}
-trail <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/trail.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-trail %>% glimpse()
-```
-
-### tows
-
-Dataset contains pre-determined pelagic trawl stations. The variables are:
-
-* **activity**: Some information on the type of tow
-* **lon**: Degrees longitude
-* **lat**: Degrees latitute
-
-```{r}
-tows <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/tows.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-tows %>% glimpse()
-```
-
-### strata
-
-Dataset contains the survey stratas (used when calculating the stratified abundance/biomass indices). The variables are:
-
-* **lon**: Degrees longitude
-* **lat**: Degrees latitute
-* **strata**: Numerical indicating strata number
-
-```{r}
-strata <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/iessns2019/strata.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-strata %>% glimpse()
-```

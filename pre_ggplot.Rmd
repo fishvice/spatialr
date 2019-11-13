@@ -8,24 +8,29 @@ output:
     theme: united
     toc: yes
     toc_float: yes
+    toc_depth: 4
 ---
+
+TODO:
+
+* Correct path to minke.csv
+* Check use of "projections", "aspect ratio", ...
+* Make clear the distinction between coord_quickmap vs map
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-#### Needed libraries for this tutorial:
+## Preamble
+___
+
+#### Needed libraries
 
 ```{r}
-library(devtools)
-# install_github("hafro/ggplot2")
+library(tidyverse)
+library(patchwork)
 library(maps)
 library(mapdata)
-library(lubridate)
-library(tidyverse)
-library(cowplot)
-theme_set(theme_grey())
-library(ggmap)
 ```
 
 ```{r, echo = FALSE}
@@ -41,11 +46,11 @@ cl = function(x, color = "blue"){
 }
 ```
 
-#### Data used
+#### External data
 
 ```{r}
 minke <- 
-  read.csv("http://www.hafro.is/~einarhj/data/minke.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble()
 glimpse(minke)
@@ -84,7 +89,7 @@ ggplot(minke)                   + geom_point(aes(lon, lat))
 ggplot(minke, aes(lon, lat))    + geom_point()
 ```
 
-Can be stored as an object for later use:
+A ggplot can be stored as an object for later use:
 
 ```{r}
 p <- ggplot(minke) + geom_point(aes(lon, lat))
@@ -94,80 +99,110 @@ The class:
 ```{r}
 class(p)
 ```
+
 The structure (a bit of Latin - not run here):
 ```{r, eval = FALSE}
 str(p)
 ```
 
-The minke data has two columns that refer to geographical coordinates. Lets plot the location of the minke sample: 
+It is kind of a list, here the object having the following names:
 ```{r}
-minke %>% 
-  ggplot(aes(lon, lat)) +
-  geom_point(colour = "red")
+names(p)
 ```
+
+In principle all the components needed to render the plot are stored within the object, including the data:
+```{r}
+p$data
+```
+
+We do not normally store plots as objects.
 
 In the above plot, we basically have mapped the longitude on the x-axis and the latitude on the y-axis. There are two things missing:
 
-* A background, giving the reader a better indication of the geographical region of the sample location.
-* The projection (aspect ratio between the x- and the y-axis) looks wrong
+* A background or a reference, giving the reader of the map a better indication of the geographical region of the sample location.
+* The projection looks wrong
 
-## Some backgrounds
+## Basic background
+___
 
-* Maps as background for r-plot can come from myriad of sources. Here we take an example of objects available in the map- and mapdata-packages.
-* To get the data into ggplot2 friendly form (data.frame) we use the `map_data` function.
+* Maps as background for r-plot can come from myriad of sources. Here we take an example of shoreline that reside in the map-packages.
+* To get the data into required ggplot2 form (a data.frame) we use the `r cl("map_data")`-function.
 
 ```{r}
 iceland <- map_data("world", region = "Iceland")
 glimpse(iceland)
 ```
 
-Here we have just a simple dataframe with coordinates and some other variables. We can try map these coordinates to different layers:
+Here we have just a simple dataframe with 454 coordinates (long and lat) and some other variables. We can try map these coordinates to different layers:
+
 ```{r}
 p <- ggplot(iceland, aes(long, lat)) + labs(x = NULL, y = NULL)
 p1 <- p + geom_point()
 p2 <- p + geom_line()
 p3 <- p + geom_path()
 p4 <- p + geom_polygon()
-plot_grid(p1, p2, p3, p4)
+p1 + p2 + p3 + p4
 ```
 
 The above sweep of plots demonstrate that background maps are just a set of longitudinal and latitudinal data that are **arrange**-ed in a specific way (check help file for `geom_line` vs `geom_path`).
 
-## Projections
+#### Projections
 
-As noted above a map is just a xy-plot but with a certain projections. We could try to guess the projections (or rather the aspect ration of the plot) as done on the left, or better still use the `r cl("geom_quickmap")`-function (on the right):
+As noted above a map is just a xy-plot but with a certain projections. We could try to guess the projections (or rather the aspect ration of the plot) as done on the left, or better still use the `r cl("geom_quickmap")`-function (middle graph):
 
-```{r}
+```{r, fig.height = 2.5}
 p1 <- p3 + coord_fixed(ratio = 2.4)
 p2 <- p3 + coord_quickmap()
-plot_grid(p1, p2)
+p3 <- p3 + coord_map()
+p1 + p2 + p3
 ```
 
 Note that the `r cl("geom_quickmap")` is an approximation (albeit good one for most purposes), if one is operating on a fine scale `r cl("geom_map")` may be more accurate (actually all maps are wrong when put on a two dimentional pane).
 
-
-## aesthetic
+## Adding layers
 ___
 
-Adding more variables to a two dimensional scatterplot can be done by mapping the variables to some aesthetics (colour, fill, size, shape, alpha) using the `r cl("aes")`-function.
+The power of ggplot comes into place when one adds layers on top of other layers. With the following code one first generates the background-map and then adds the minke datapoints on top of that background map: 
+
+```{r}
+ggplot() +
+  geom_polygon(data = iceland, aes(long, lat)) +
+  geom_point(data = minke, aes(lon, lat)) +
+  coord_quickmap()
+```
+
+
+## Aesthetic
+___
+
+Adding more information to a map can be done by mapping the variables to some aesthetics (colour, fill, size, shape, alpha) using the `r cl("aes")`-function.
 
 ### colour
 
 ```{r, out.width = "50%", fig.show = "hold"}
-p <- ggplot(minke, aes(lon, lat)) + 
+p <- 
+  ggplot(data = minke, aes(lon, lat)) + 
   geom_polygon(data = iceland, aes(long, lat), fill = "grey") +
   coord_quickmap()
 p + geom_point(aes(colour = sex))
 p + geom_point(aes(colour = area))
 ```
 
-Manual control of colours or other palette schemes (here brewer):
+Manual control of colours or other palette schemes (here a brewer palette):
 ```{r, out.width = "50%", fig.show = "hold"}
 p + geom_point(aes(colour = sex)) +
   scale_colour_manual(values = c("orange","brown"))
 p + geom_point(aes(colour = area)) +
   scale_colour_brewer(palette = "Set1")
 ```
+
+Normally when mapping a variable to colours it is recommended to base it on some ready-made pallette rather than creating some arbritary colour selection manually. This is said because in the former some careful thoughts and theories have been applied when generating the colour palette. To view the available brewer-palettes one can:
+
+```{r, fig.height = 4}
+RColorBrewer::display.brewer.all()
+```
+
+TODO: Refer to section that deals with colours and palettes.
 
 ### shape
 
@@ -232,18 +267,11 @@ p +
   facet_grid(sex ~ year)
 ```
 
-## Adding layers
-___
 
-The power of ggplot comes into place when one adds layers on top of other layers.
-
-### Add a smoother to a scatterplot
 
 ```{r, out.width = "33%", fig.show = "hold"}
 
 ```
-
-In the rightmost plot a linear regression is fitted (check out ?lm).
 
 <div class="panel panel-warning">
 <div class="panel-heading">Exercise</div>
@@ -268,19 +296,22 @@ ___
 p <- 
   p + 
   geom_point(aes(colour = sex)) + 
-  labs(x = "Longitude", y = "Latitute", 
-              colour = "Sex", 
-              title = "My minke plot",
-              subtitle = "My nice subtitle")
+  labs(title = "My minke plot",
+       subtitle = "My nice subtitle",
+       x = "Longitude", y = "Latitute", 
+       colour = "Sex")
 p
 ```
 
 ### Legend position
 
+One can decide not show legend or set the controls somewhere within the plot:
 ```{r, out.width = "50%", fig.show = "hold"}
 p + theme(legend.position = "none")
 p + theme(legend.position = c(0.5, 0.5))
 ```
+
+In the call to legend position (the right plot) values are relative xy-values going from 0 to 1.
 
 ### breaks
 
@@ -316,7 +347,6 @@ Remedy:
 p + geom_boxplot() + coord_cartesian(ylim = c(600, 800))
 ```
 
-# Getting started
 
 
 
@@ -381,10 +411,10 @@ p1 <- m + geom_point(data = minke, aes(lon, lat, colour = sex))
 p2 <- m + 
   geom_point(data = minke, aes(lon, lat, size = stomach.weight), colour = "red", alpha = 0.5) +
   scale_size_area(max_size = 10)
-plot_grid(p1, p2)
+p1 + p2
 ```
 
-# Other background
+
 
 ## Depth contours
 
@@ -418,8 +448,8 @@ We generate the base map with contours as follows:
 m <- ggplot() +
   theme_bw() +
   geom_contour(data = depth, aes(x, y, z = z),
-               breaks=c(-25, -50, -100, -200, -400),
-               colour="black", size=0.1) +
+               breaks = c(-25, -50, -100, -200, -400),
+               colour = "black", size=0.1) +
   geom_polygon(data = iceland, aes(long, lat, group = group), fill = "grey") +
   coord_quickmap(xlim = xlim, ylim = ylim, expand = FALSE) +
   labs(x = NULL, y = NULL)
@@ -524,7 +554,7 @@ ns_area %>%
        fill = "ALK areas") 
 ```
 
-# Gridding data
+
 
 We are often interested in summarizing spatial data onto a grid for presentations. A typical example are logbook data which often can hold millions of records. Lets read in some bottom trawl logbook data from Iceland:
 
