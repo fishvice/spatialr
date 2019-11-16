@@ -30,18 +30,21 @@ The content of the directory is as follows:
 tree  /net/www/export/home/ftp/pub/data
 ```
 
-
-
 # Data
 ___
 
 ```{r setup}
+library(mapdeck)
 library(sf)
-library(leaflet)
 library(rmapshaper)
+library(lwgeom)
 library(tidyverse)
-theme_set(theme_grey(base_size = 16))
 ```
+
+```{r, echo = FALSE}
+key <- "pk.eyJ1IjoiZmlzaHZpY2UiLCJhIjoiY2p0MXQ5dThpMDZqeDQ5bHM0MGx4dHI5cyJ9.Fed_z7mv_TgTWDRjiavU3A" 
+```
+
 
 ## Minke
 
@@ -65,7 +68,7 @@ The minke whale dataset contains biological measurements from 192 scientific cat
 
 ```{r, eval = FALSE}
 minke <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/minke.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble()
 ```
@@ -123,113 +126,241 @@ strata <-
 strata %>% glimpse()
 ```
 
+## DATRAS data
+
+
+```{r, eval = FALSE}
+hh <- 
+  read_rds("/net/hafkaldi/export/home/haf/einarhj/prj2/bookdown/datrasdoodle/data/datras/hh_datras.rds") %>% 
+  filter(year == 2018)
+write_csv(hh, "/net/www/export/home/ftp/pub/data/csv/datras_2018_haul.csv")
+hl <- 
+  hh %>% 
+  select(id) %>% 
+  left_join(read_rds("/net/hafkaldi/export/home/haf/einarhj/prj2/bookdown/datrasdoodle/data/datras/hl_datras.rds"))
+write_csv(hl, "/net/www/export/home/ftp/pub/data/csv/datras_2018_length.csv")
+```
+
+```{r}
+hh <- read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_haul.csv",
+               stringsAsFactors = FALSE)
+hl <- read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_length.csv",
+               stringsAsFactors = FALSE)
+```
+
 
 # Shapes
 ___
 
+
 ### ICES shapes
+
+
+... create an interactive map showing all shapes
+
+### ICES shapes code
 
 The following shapes were obtained from gis.ices.dk. The primary purpose for storing them here was:
 
-* Storing them in a single files as "gpkg"-format rather numerous ESRI-shapefiles bundled in a zip-file.
+* Storing each as a single files in "gpkg"-format rather numerous ESRI-shapefiles that are bundled within each zip-file.
+* Check shape validity.
+* Create consistent variable names.
 * Simplifying some very dense files in order to reduce usage of memory space when read into R.
 
 The code shows how the data were obtained, and in case of simplification how they were simplified.
 
 **A little helper function**:
 
-```{r, eval = FALSE}
-read_ices_shapes <- function(url) {
+```{r}
+read_zipped_shapes <- function(url, simplify = FALSE, make_valid = TRUE) {
   td <- tempdir()
-  file.remove(dir(td, full.names = TRUE))
   tf <- tempfile()
   download.file(url, tf)
   fil <- unzip(tf, exdir = td)
-  sp <- sf::read_sf(fil[grep(".shp$", fil)])
+  fil <- fil[grep(".shp$", fil)]
+  if(length(fil) == 1) {
+    sp <- 
+      sf::read_sf(fil)
+    #if(url %in% c("http://gis.ices.dk/shapefiles/ICES_ecoregions.zip",
+    #              "ftp://ftp.hafro.is/pub/data/shapes/ices_areas.gpkg")) {
+    #  bb <- sf::st_bbox(sp)
+    #  bb[[4]] <- 89
+    #  sp <- sf::st_crop(sp, bb)
+    #}
+  } else {
+    res <- map(fil, sf::read_sf)
+    names(res) <- 
+      basename(fil) %>% 
+      stringr::str_remove(".shp")
+    sp <- 
+      data.table::rbindlist(res,
+                            use.names = TRUE,
+                            fill = TRUE,
+                            idcol = "name") %>%
+      sf::st_as_sf()
+  }
+  
+  sp <-
+    sp %>% 
+    dplyr::rename_all(tolower)
   file.remove(fil)
+  
+  if(!all(st_is_valid(sp)) & make_valid) {
+    sp <- sp %>% lwgeom::st_make_valid()
+  }
+  
+  if(simplify) sp <- rmapshaper::ms_simplify(sp)
+
+  if(is.na(st_crs(sp)$epsg)) {
+    # assume it is 4326
+    sp <- sp %>% st_set_crs(value = 4326)
+  } else {
+    if(st_crs(sp)$epsg != 4326) sp <- sp %>% st_transform(crs = 4326)
+  }
+  
   return(sp)
+  
 }
 ```
 
 
 #### Nephrops functional units
 
+**reading**:
 ```{r, eval = FALSE}
 url <- "http://gis.ices.dk/shapefiles/Nephrops_FU.zip"
-read_ices_shapes(url) %>% 
-  rename_all(tolower) %>% 
-  write_sf("/net/www/export/home/ftp/pub/data/shapes/nephrops_fu.gpkg")
-fu <- st_read("ftp://ftp.hafro.is/pub/data/shapes/nephrops_fu.gpkg")
+p <- 
+  read_zipped_shapes(url) %>%
+  select(name = fu_descrip, fu)
+write_sf(p, "/net/www/export/home/ftp/pub/data/shapes/nephrops_fu.gpkg")
+```
+
+**view**:
+```{r}
+p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/nephrops_fu.gpkg")
+p %>% 
+  mapdeck(token = key) %>% 
+  add_polygon(fill_colour = "name",
+              tooltip = "name",
+              stroke_colour = adjustcolor("red", alpha.f = 1),
+              stroke_width = 1000)
 ```
 
 #### ICES areas
 
 ```{r, eval = FALSE}
 url <- "http://gis.ices.dk/shapefiles/ICES_areas.zip"
-read_ices_shapes(url) %>% 
-  rename_all(tolower) %>% 
-  st_transform(crs = 4326) %>% 
-  ms_simplify(keep = 0.05,
-              snap = TRUE) %>% 
-  write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_areas.gpkg")
-areas <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_areas.gpkg")
+p <-
+  read_zipped_shapes(url, simplify = TRUE)
+write_sf(p, "/net/www/export/home/ftp/pub/data/shapes/ices_areas.gpkg")
+```
+
+**view**:
+```{r}
+p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_areas.gpkg")
+p %>% 
+  mapdeck(token = key) %>% 
+  add_polygon(fill_colour = "area_27",
+         tooltip = "area_27",
+         stroke_colour = adjustcolor("red", alpha.f = 1),
+         stroke_width = 1000)
 ```
 
 #### ICES ecoregions
 
 ```{r, eval = FALSE}
 url <- "http://gis.ices.dk/shapefiles/ICES_ecoregions.zip"
-read_ices_shapes(url) %>% 
-  rename_all(tolower) %>% 
-  ms_simplify(keep = 0.05,
-              snap = TRUE) %>% 
-  write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_ecoregions.gpkg")
-egos <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg")
+p <- 
+  read_zipped_shapes(url, simplify = TRUE) %>% 
+  select(ecoregion,
+         area_km2 = shape_area)
+p %>% write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_ecoregions.gpkg")
+```
+
+**view**:
+```{r}
+p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg")
+p %>% 
+  mapdeck(token = key) %>% 
+  add_polygon(fill_colour = "ecoregion", 
+         tooltip = "ecoregion",
+         #palette = "rainbow",
+         stroke_colour = adjustcolor("red", alpha.f = 1),
+         stroke_width = 10000)
 ```
 
 #### OSPAR (from ICES)
 
 ```{r, eval = FALSE}
 url <- "http://gis.ices.dk/shapefiles/OSPAR_Subregions.zip"
-read_ices_shapes(url) %>% 
-  rename_all(tolower) %>% 
-  st_transform(crs = 4326) %>% 
-  write_sf("/net/www/export/home/ftp/pub/data/shapes/ospar.gpkg")
-ospar <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ospar.gpkg")
+p <- read_zipped_shapes(url) 
+p %>% write_sf("/net/www/export/home/ftp/pub/data/shapes/ospar.gpkg")
+```
+
+**view**:
+```{r}
+p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ospar.gpkg")
+p %>% 
+  mapdeck(token = key) %>% 
+  add_sf(fill_colour = "subregion",
+         tooltip = "subregion",
+         stroke_colour = adjustcolor("red", alpha.f = 1),
+         stroke_width = 10000)
 ```
 
 #### HELOM (from ICES)
 
 ```{r, eval = FALSE}
 url <- "http://gis.ices.dk/shapefiles/HELCOM_subbasins.zip"
-read_ices_shapes(url) %>% 
-  rename_all(tolower) %>% 
-  st_transform(crs = 4326) %>% 
-  ms_filter_islands(min_area = 1e5) %>% 
-  ms_simplify(keep = 0.05,
-              snap = TRUE) %>% 
-  write_sf("/net/www/export/home/ftp/pub/data/shapes/helcom.gpkg")
-helcom <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/helcom.gpkg")
+p <- read_zipped_shapes(url, simplify = TRUE)
+p %>% write_sf("/net/www/export/home/ftp/pub/data/shapes/helcom.gpkg")
+```
+
+**view**:
+```{r}
+p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/helcom.gpkg")
+p %>% 
+  mapdeck(token = key) %>% 
+  add_sf(fill_colour = "name",
+         tooltip = "name",
+         stroke_colour = adjustcolor("red", alpha.f = 1),
+         stroke_width = 500)
 ```
 
 #### ICES statistical rectangles
 
 ```{r, eval = FALSE}
 url <- "http://gis.ices.dk/shapefiles/ICES_rectangles.zip" 
-read_ices_shapes(url) %>% 
-  rename_all(tolower) %>% 
-  write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_rectangles.gpkg")
+p <- read_zipped_shapes(url)
+write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_rectangles.gpkg")
 ```
 
-#### ICES statistical rectangles
+#### ICES statistical subrectangles
 
 ```{r, eval = FALSE}
 url <- "http://gis.ices.dk/shapefiles/ICES_SubStatrec.zip" 
-read_ices_shapes(url) %>% 
-  rename_all(tolower) %>% 
-  st_transform(crs = 4326) %>% 
+p <- read_zipped_shapes(url)
+p %>% 
   write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_subrectangles.gpkg")
 ```
+
+#### NEAFC vme
+
+Not really what was expected
+
+```{r, eval = FALSE}
+# bit of a mess
+url <- "https://www.neafc.org/system/files/mid-atlantic-vme-closures.zip"
+p1 <- read_zipped_shapes(url)
+url <- "https://www.neafc.org/system/files/hr_shape_files_2018.zip"
+p2 <- read_zipped_shapes(url)
+library(mapdeck)
+key <- "pk.eyJ1IjoiZmlzaHZpY2UiLCJhIjoiY2p0MXQ5dThpMDZqeDQ5bHM0MGx4dHI5cyJ9.Fed_z7mv_TgTWDRjiavU3A"
+p1 %>% mapdeck(token = key) %>% add_sf(tooltip = "name")
+p2 %>% mapdeck(token = key) %>% add_sf(tooltip = "name")
+p %>% write_sf("/net/www/export/home/ftp/pub/data/shapes/helcom.gpkg")
+```
+
 
 
 # Not there yet
@@ -238,10 +369,8 @@ read_ices_shapes(url) %>%
 
 Download available 2019 DATRAS data:
 ```{r, eval = FALSE}
-# NOTE: Need to do this from scratch
-read_rds("/net/hafkaldi/export/home/haf/einarhj/prj2/bookdown/datrasdoodle/data/hh_datras.rds") %>% 
-  tidyices::dtrs_tidy_hh() %>% 
-  write_csv("/net/www/export/home/ftp/pub/reiknid/einar/data/datras/hh_datras.csv")
+
+ 
 ```
 
 ```{r, eval = FALSE}
