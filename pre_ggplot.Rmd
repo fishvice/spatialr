@@ -3,7 +3,7 @@ title: "ggplot2 basics"
 output:
   html_document:
     fig_height: 4
-    fig_width: 8
+    fig_width: 9
     highlight: haddock
     theme: united
     toc: yes
@@ -13,9 +13,15 @@ output:
 
 TODO:
 
+* https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only
 * Correct path to minke.csv
 * Check use of "projections", "aspect ratio", ...
 * Make clear the distinction between coord_quickmap vs map
+
+
+* https://www.earthdatascience.org/courses/earth-analytics/spatial-data-r/make-maps-with-ggplot-in-R/
+* https://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
+* https://cran.rstudio.com/web/packages/geofacet/geofacet.pdf
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
@@ -179,7 +185,7 @@ Adding more information to a map can be done by mapping the variables to some ae
 
 ### colour
 
-```{r, out.width = "50%", fig.show = "hold"}
+```{r, out.width = "50%", fig.show = "hold", fig.height = 5}
 p <- 
   ggplot(data = minke, aes(lon, lat)) + 
   geom_polygon(data = iceland, aes(long, lat), fill = "grey") +
@@ -189,7 +195,7 @@ p + geom_point(aes(colour = area))
 ```
 
 Manual control of colours or other palette schemes (here a brewer palette):
-```{r, out.width = "50%", fig.show = "hold"}
+```{r, out.width = "50%", fig.show = "hold", fig.heigth = 5}
 p + geom_point(aes(colour = sex)) +
   scale_colour_manual(values = c("orange","brown"))
 p + geom_point(aes(colour = area)) +
@@ -198,7 +204,7 @@ p + geom_point(aes(colour = area)) +
 
 Normally when mapping a variable to colours it is recommended to base it on some ready-made pallette rather than creating some arbritary colour selection manually. This is said because in the former some careful thoughts and theories have been applied when generating the colour palette. To view the available brewer-palettes one can:
 
-```{r, fig.height = 4}
+```{r, fig.height = 6}
 RColorBrewer::display.brewer.all()
 ```
 
@@ -293,15 +299,27 @@ ___
 ### labels
 
 ```{r}
-p <- 
-  p + 
+p + 
   geom_point(aes(colour = sex)) + 
   labs(title = "My minke plot",
        subtitle = "My nice subtitle",
        x = "Longitude", y = "Latitute", 
        colour = "Sex")
-p
 ```
+
+### axis label controls
+
+```{r}
+#devtools::install_github("einarhjorleifsson/ggmisc")
+library(ggmisc)
+p + 
+  geom_point(aes(colour = sex)) +
+  scale_x_continuous(breaks = seq(-25.5, -13.5, by = 1), labels = iceslabelsx,
+                     limits = c(-25.5, -13.5)) #+
+ # scale_y_continuous(breaks = seq(63, 67, by = 0.5), labels = iceslabelsy)
+```
+
+iceslabelsx(seq(-28,-10, by = 1))
 
 ### Legend position
 
@@ -317,7 +335,7 @@ In the call to legend position (the right plot) values are relative xy-values go
 
 Controls which values appear as tick marks
 
-```{r, out.width = "50%", fig.show = "hold"}
+```{r, out.width = "50%", fig.show = "hold", fig.height = 5}
 p + scale_x_continuous(breaks = c(-25:-10))
 p +
   scale_x_continuous(breaks = seq(-25, -10, by = 1)) +
@@ -326,26 +344,128 @@ p +
 
 ### limits
 
-```{r, out.width = "33%", fig.show = "hold"}
-p  + xlim(-24, -22.5)
+```{r, out.width = "33%", fig.show = "hold", fig.height = 5}
+p + xlim(-24, -22.5)
 p + xlim(NA, -22.5) # setting only upper limit
 ```
 
 
+#### Formatting latitute and longitude
+
+```{r}
+# https://stackoverflow.com/questions/33302424/format-latitude-and-longitude-axis-labels-in-ggplot
+scale_longitude <- function(min = -180, max = 180, step = 1, ...) {
+  breaks <- seq(min, max, step)
+  labels <- 
+    ifelse(breaks < 0,
+           paste0(breaks, "\u00B0", "W"),
+           paste0(breaks, "\u00B0", "E"))
+  return(scale_x_continuous("Longitude", breaks = breaks, labels = labels, ...))
+}
+scale_latitude <- function(min = -90, max = 90, step = 0.5, ...) {
+  breaks <- seq(min, max, step)
+  labels <- 
+    ifelse(breaks < 0,
+           paste0(breaks, "\u00B0", "S"),
+           paste0(breaks, "\u00B0", "N"))
+  return(scale_y_continuous("Latitude", breaks = breaks, labels = labels, ...))
+}
+
+p <- 
+  ggplot(geo::island, aes(lon, lat)) +
+  coord_quickmap()
+p +
+  geom_path() +
+  scale_longitude(step = 2) +
+  scale_latitude(step = 1)
+```
+
+
+```{r}
+scale_longitude_ices <- function(min = -44, max = 68.5, step = 1, ...) {
+  breaks <- seq(min + 0.5, max - 0.5, step)
+  labels <- geo::d2ir(60, breaks) %>% str_sub(3)
+  return(scale_x_continuous(name = NULL, breaks = breaks, labels = labels, ...))
+}
+scale_latitude_ices <- function(min = 36, max = 84.5, step = 0.5, ...) {
+  breaks <- seq(min + 0.25, max - 0.25, step)
+  labels <- geo::d2ir(breaks, 0) %>% str_sub(1, 2)
+  return(scale_y_continuous(name = NULL, breaks = breaks, labels = labels, ...))
+}
+
+p +
+  geom_path() +
+  scale_longitude_ices() +
+  scale_latitude_ices()
+
+ir <- 
+  sf::read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_rectangles.gpkg") %>% 
+  filter(between(west, -25, -14),
+         between(south, 63, 66))
+ggplot() +
+  #geom_sf(data = ir) +
+  geom_path(data = geo::island, aes(lon, lat),
+            colour = "grey") +
+  geom_text(data = ir,
+            aes(x = west + 0.5, y = south + 0.25,
+                label = icesname),
+            angle = 45, 
+            colour = "red",
+            size = 3) +
+  scale_longitude_ices() +
+  scale_latitude_ices() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_line(size = 1),
+        axis.ticks = element_blank()) +
+  coord_quickmap()
+```
+
+
+## MESSY STUFF BELOW
+
+## DATRAS case example
+
+```{r}
+hh <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_haul.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+hl <-
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_length.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+
+hh %>% 
+  filter(survey == "IE-IGFS",
+         quarter == 4) %>% 
+  select(id, lon = shootlong, lat = shootlat) %>% 
+  left_join(hl %>% 
+              filter(latin %in% c("Sprattus sprattus",
+                                  "Melanogrammus aeglefinus",
+                                  "Trisopterus esmarkii",
+                                  "Scomber scombrus")) %>% 
+              group_by(id, latin) %>% 
+              summarise(n = sum(n))) %>% 
+  drop_na() %>% 
+  ggplot(aes(lon, lat, size = n)) +
+  scale_size_area(max_size = 20) +
+  geom_point(colour = "blue", alpha = 0.2) +
+  facet_wrap(~ latin) +
+  coord_quickmap()
+```
+
+
+
+
 #### warning
 
-But be careful when using lim with summary statistics (not valid here), e.g.:
-
-```{r, out.width = "50%", fig.show = "hold"}
-p + geom_boxplot()
-p + geom_boxplot() + ylim(600, 800)
-```
 
 Remedy:
 
 ```{r}
 p + geom_boxplot() + coord_cartesian(ylim = c(600, 800))
 ```
+
 
 
 
