@@ -119,11 +119,42 @@ Here we used the *st_point()* function to convert a vector into an *sfg* object.
 
 Rarelly you will need to build *sf* objects from scratch.  More often you will have data with coordinates and will want to convert that data into an *sf* object.  We will do this, but first let's learn a bit more about sf objects.
 
+
+
+
+#### What is a list column?
+Let's remember that  data frame is also a list with vectors of the same length.
+
+```{r }
+# This is a regular dataframe with three rows
+my_df <- data.frame(a = 7:9, b = c("a", "b", "c"), c = c (10, 20, 30))
+
+is.data.frame(my_df)
+is.list(my_df)
+
+my_df$a
+
+my_df[[1]]
+
+```
+A list column is simply a column in a dataframe that contains a list, with one element per row.
+
+```{r }
+
+# This is a list with three elements
+my_list <- list(1:2, "Hello", c("A", "B", "C"))
+
+# Now let's use the list as a column in the dataframe
+my_df$d <- my_list
+print(my_df)
+```
+List columns are used in sf objects to store its geometry.
+
+
 ## A deeper look into sf objects
 Let's take a look at a "real" sf object, in this case the ICES areas.  
 
 ```{r }
-library (sf)
 ices_areas <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_areas.gpkg")
 
 class(ices_areas)
@@ -212,7 +243,7 @@ Let's try the **ggplot2** package with *geom_sf()*.
 ices_areas %>%
   ggplot() +
   theme_bw() +
-  geom_sf(aes(fill = Area_km2)) +
+  geom_sf(aes(fill = area_km2)) +
   labs(fill = "Area (km2)")
 
 ```
@@ -224,7 +255,7 @@ ices_areas$geom[[4]]
 
 ```
 
-# Making your own sf objects
+## Making your own sf objects
 Very often the first step in our spatial analysis and mapping is to convert external objects into *sf* objects.  This is done using the *st_as_sf()* function.
 
 In the simplest case, our data is comprised of individual point observations, with associated data.  In this case an *sf* object with geometry type POINT will suffice.  In the minke data set, we have observations for individual whales.
@@ -276,5 +307,106 @@ vms
 ggplot() +
   geom_sf(data=vms, aes(colour=as.factor(id))) +
   theme(legend.position = "none")
+
+```
+
+## Operating with attributes in sf objects
+
+Remember that sf objects are data.frames or tibbles.  So we can use the usual functions from base R or from the tidyverse to manipulate them.
+
+
+Let's load a set of polygons with the ICES ecoregions, and select the small ones.
+
+```{r }
+
+ices_er <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg")
+
+ices_er
+
+ggplot() +
+  geom_sf(data = ices_er, aes(fill=ecoregion))
+
+sm_ices_er <- ices_er %>%
+  filter(area_km2 < 100)
+
+ggplot() +
+  geom_sf(data = sm_ices_er, aes(fill=ecoregion))
+
+```
+
+Notice that the new object *sm_ices_er* also has a geometry column even if we did not selected it explicitly.  In sf objects the geometry is "sticky".  In other words, subsets of sf objects are also sf objects.  If we want to remove the geometry column we can do this:
+
+```{r }
+
+sm_ices_er_df <- st_drop_geometry(sm_ices_er)
+
+```
+
+Also, note how the metadata of the sf object gets updated.  Look at the bounding box of each object:
+
+```{r }
+st_bbox(ices_er)
+st_bbox(sm_ices_er)
+
+```
+
+## Fixing geometries
+https://www.r-spatial.org/r/2017/03/19/invalid.html
+
+
+```{r }
+library(lwgeom)
+
+ego <-
+  read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg") %>%
+  mutate(validity = st_is_valid(., reason = TRUE))
+ego %>%
+  st_drop_geometry() %>%
+  select(ecoregion, validity)
+
+ego <-
+  read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg") %>%
+  st_make_valid() %>%
+  mutate(validity = st_is_valid(., reason = TRUE))
+ego %>%
+  st_drop_geometry() %>%
+  select(ecoregion, validity)
+
+
+
+```
+
+
+
+
+## Class *Spatial*
+
+The *Spatial* class includes several derived classes to represent different types of spatial data (with and without associated data).  For vector data, there are classes for points, lines and polygons:
+
+- *SpatialPoints* and *SpatialPointsDataFrame*
+- *SpatialLines* and *SpatialLinesDataFrame*
+- *SpatialPolygons* and *SpatialPolygonsDataFrame*
+
+*sp* also has (limited) support for raster data:
+
+- *SpatialGrid* and *SpatialGridDataFrame*
+- *SpatialPixel* and *SpatialPixelDataFrame*
+
+We will not deal with the spatial class, except to say that we can convert to and from **sf**.
+
+```{r }
+library(tidyverse)
+library(sf)
+library(sp)
+
+data(meuse)
+
+class(meuse)
+
+coordinates (meuse) = ~ x + y # Convert to class sp
+
+meuse.sf <- meuse %>% st_as_sf() # From spatial to sf
+
+meuse.sp <- meuse %>% as("Spatial") # From sf to spatial
 
 ```
