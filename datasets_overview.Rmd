@@ -14,7 +14,7 @@ output:
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-# Dataset overview
+# Datasets - overview
 ___
 
 The data used as examples in the course are all stored at this location [ftp://ftp.hafro.is/pub/data](ftp://ftp.hafro.is/pub/data). To obtain the path for reading any file into R it is simplest to:
@@ -92,6 +92,9 @@ The smb dataset contains 19846 tows from the annual Icelandic bottom trawl sprin
 * **lat1**: Latititue of tow start, decimal degrees
 * **lon2**: Longitude of tow end, decimal degrees
 * **lat2**: Latitute of tow end, decimal degrees
+* **ir**: ICES statistical rectangle
+* **ir_lon** ICES statistical rectangle longitude midpoint
+* **ir_lat** ICES statistical rectangle latitude midpoint
 * **z1**: Bottom depth at tow start
 * **z2**: Bottom depth at tow end
 * **speed**: Average towing speed in knots
@@ -553,8 +556,12 @@ st <-
 utbrteg %>% 
   rename(id = synis.id) %>% 
   left_join(st) %>% 
+  mutate(ir = geo::d2ir(lat, lon),
+         ir_lon = geo::ir2d(ir)$lon,
+         ir_lat = geo::ir2d(ir)$lat) %>% 
   select(id,
          date = dags,
+         year = ar,
          vid = skip,
          tow_id,
          t1,
@@ -563,6 +570,9 @@ utbrteg %>%
          lat1 = kastad.n.breidd,
          lon2 = hift.v.lengd,
          lat2 = hift.n.breidd,
+         ir,
+         ir_lon,
+         ir_lat,
          z1 = dypi.kastad,
          z2 = dypi.hift,
          tmp1 = yfirbordshiti,

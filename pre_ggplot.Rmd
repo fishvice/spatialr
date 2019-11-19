@@ -1,5 +1,6 @@
 ---
-title: "ggplot2 basics"
+title: "Introduction to ggplot2"
+subtitle: "Part 1"
 output:
   html_document:
     fig_height: 4
@@ -8,35 +9,23 @@ output:
     theme: united
     toc: yes
     toc_float: yes
-    toc_depth: 4
+    toc_depth: 2
 ---
-
-TODO:
-
-* https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only
-* Correct path to minke.csv
-* Check use of "projections", "aspect ratio", ...
-* Make clear the distinction between coord_quickmap vs map
-
-
-* https://www.earthdatascience.org/courses/earth-analytics/spatial-data-r/make-maps-with-ggplot-in-R/
-* https://journal.r-project.org/archive/2013-1/kahle-wickham.pdf
-* https://cran.rstudio.com/web/packages/geofacet/geofacet.pdf
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-## Preamble
+# Getting started
 ___
 
-#### Needed libraries
-
+**Needed libraries**:
 ```{r}
-library(tidyverse)
-library(patchwork)
-library(maps)
-library(mapdata)
+library(tidyverse)   # installs sweeps of packages
+library(patchwork)   # used for multiplotting
+library(maps)        # some basic country maps
+library(mapdata)     # higher resolution maps
+library(marmap)      # access global topgraphy data
 ```
 
 ```{r, echo = FALSE}
@@ -52,7 +41,9 @@ cl = function(x, color = "blue"){
 }
 ```
 
-#### External data
+**Importing external data**:
+
+In this tutorial we are going to use the minke data and the Icelandic spring groundfish survey data (see full explonation of variables in [Datasets - overview](datasets_overview.html)).
 
 ```{r}
 minke <- 
@@ -62,9 +53,16 @@ minke <-
 glimpse(minke)
 ```
 
+```{r}
+smb <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble() %>% 
+  filter(year == 2019)
+smb %>% select(id:cod_n) %>% glimpse()
+```
 
-## ggplot: Key components
-___
+## Key components of ggplot 
 
 ggplot has __three__ key components: 
 
@@ -101,489 +99,317 @@ A ggplot can be stored as an object for later use:
 p <- ggplot(minke) + geom_point(aes(lon, lat))
 ```
 
-The class:
-```{r}
-class(p)
-```
+In the above plot, we basically have mapped the longitude position on the x-axis and the latitude position on the y-axis. There are two things missing:
 
-The structure (a bit of Latin - not run here):
-```{r, eval = FALSE}
-str(p)
-```
+* A background or a reference, giving the reader a better indication of the geographical region of the sample location.
+* The projection looks odd.
 
-It is kind of a list, here the object having the following names:
-```{r}
-names(p)
-```
-
-In principle all the components needed to render the plot are stored within the object, including the data:
-```{r}
-p$data
-```
-
-We do not normally store plots as objects.
-
-In the above plot, we basically have mapped the longitude on the x-axis and the latitude on the y-axis. There are two things missing:
-
-* A background or a reference, giving the reader of the map a better indication of the geographical region of the sample location.
-* The projection looks wrong
-
-## Basic background
-___
+## Reference map
 
 * Maps as background for r-plot can come from myriad of sources. Here we take an example of shoreline that reside in the map-packages.
 * To get the data into required ggplot2 form (a data.frame) we use the `r cl("map_data")`-function.
 
 ```{r}
-iceland <- map_data("world", region = "Iceland")
+iceland <- map_data("worldHires", region = "Iceland")
 glimpse(iceland)
 ```
 
-Here we have just a simple dataframe with 454 coordinates (long and lat) and some other variables. We can try map these coordinates to different layers:
+Here we have just a simple dataframe with `r nrow(iceland)` coordinates (long and lat) and some other variables. We can try map these coordinates to different layers (more on `r cl("labs")` later):
 
 ```{r}
-p <- ggplot(iceland, aes(long, lat)) + labs(x = NULL, y = NULL)
-p1 <- p + geom_point()
-p2 <- p + geom_line()
-p3 <- p + geom_path()
-p4 <- p + geom_polygon()
-p1 + p2 + p3 + p4
+m <- ggplot(iceland, aes(long, lat, group = group)) + labs(x = NULL, y = NULL)
+m1 <- m + geom_point()
+m2 <- m + geom_line()
+m3 <- m + geom_path()
+m4 <- m + geom_polygon()
+m1 + m2 + m3 + m4
 ```
 
-The above sweep of plots demonstrate that background maps are just a set of longitudinal and latitudinal data that are **arrange**-ed in a specific way (check help file for `geom_line` vs `geom_path`).
+The above sweep of code and plots demonstrate that background maps are just a set of longitudinal and latitudinal data that are **ordered** in a specific way.
 
-#### Projections
+## Projections
 
-As noted above a map is just a xy-plot but with a certain projections. We could try to guess the projections (or rather the aspect ration of the plot) as done on the left, or better still use the `r cl("geom_quickmap")`-function (middle graph):
+A proper coverage of projections is done in a [xxx](xxx.hmtl), here we just cover some basics with respect to ggplot2.
 
-```{r, fig.height = 2.5}
-p1 <- p3 + coord_fixed(ratio = 2.4)
-p2 <- p3 + coord_quickmap()
-p3 <- p3 + coord_map()
-p1 + p2 + p3
+As noted above a map is just a xy-plot but with a certain projections. We could try to guess the projections (or rather the aspect ration of the plot) as done on the left or better use the specific functions available in ggplot:
+
+```{r}
+m1 <- m3 + coord_fixed(ratio = 2.4) 
+m2 <- m3 + coord_quickmap()
+m3 <- m3 + coord_map()
+m4 <- m3 + coord_map(projection = "stereographic")
 ```
 
-Note that the `r cl("geom_quickmap")` is an approximation (albeit good one for most purposes), if one is operating on a fine scale `r cl("geom_map")` may be more accurate (actually all maps are wrong when put on a two dimentional pane).
+```{r, echo = FALSE}
+m1 <- m1 + annotate("text", x = -18, y = 64.8, label = "ration: 2.4")
+m2 <- m2 + annotate("text", x = -18, y = 64.8, label = "coord_quickmap")
+m3 <- m3 + annotate("text", x = -18, y = 64.8, label = "coord_map")
+m4 <- m4 + annotate("text", x = -18, y = 64.8, label = "stereographic")
+```
+
+```{r, fig.height = 5}
+m1 + m2 + m3 + m4
+```
+
+Note that the `r cl("geom_quickmap")` is an approximation (albeit good one for most purposes), if one is operating on a fine scale `r cl("geom_map")` may be more accurate (actually all maps are wrong when put on a two dimensional pane).
 
 ## Adding layers
-___
 
-The power of ggplot comes into place when one adds layers on top of other layers. With the following code one first generates the background-map and then adds the minke datapoints on top of that background map: 
-
-```{r}
-ggplot() +
-  geom_polygon(data = iceland, aes(long, lat)) +
-  geom_point(data = minke, aes(lon, lat)) +
-  coord_quickmap()
-```
-
-
-## Aesthetic
-___
-
-Adding more information to a map can be done by mapping the variables to some aesthetics (colour, fill, size, shape, alpha) using the `r cl("aes")`-function.
-
-### colour
-
-```{r, out.width = "50%", fig.show = "hold", fig.height = 5}
-p <- 
-  ggplot(data = minke, aes(lon, lat)) + 
-  geom_polygon(data = iceland, aes(long, lat), fill = "grey") +
-  coord_quickmap()
-p + geom_point(aes(colour = sex))
-p + geom_point(aes(colour = area))
-```
-
-Manual control of colours or other palette schemes (here a brewer palette):
-```{r, out.width = "50%", fig.show = "hold", fig.heigth = 5}
-p + geom_point(aes(colour = sex)) +
-  scale_colour_manual(values = c("orange","brown"))
-p + geom_point(aes(colour = area)) +
-  scale_colour_brewer(palette = "Set1")
-```
-
-Normally when mapping a variable to colours it is recommended to base it on some ready-made pallette rather than creating some arbritary colour selection manually. This is said because in the former some careful thoughts and theories have been applied when generating the colour palette. To view the available brewer-palettes one can:
-
-```{r, fig.height = 6}
-RColorBrewer::display.brewer.all()
-```
-
-TODO: Refer to section that deals with colours and palettes.
-
-### shape
+The power of ggplot comes into place when one adds layers on top of other layers. With the following code one first generates the background-map and then adds the minke datapoints on top of that background map:
 
 ```{r}
-p + geom_point(aes(shape = sex))
+p <-
+  ggplot() +
+  geom_polygon(data = iceland, 
+               aes(long, lat, group = group),
+               fill = "grey") +
+  geom_point(data = minke, 
+             aes(lon, lat, colour = sex)) +
+  labs(x = NULL, y = NULL)
+p + coord_map()
 ```
 
-### size
+Besides adding a `r cl("point")` layer on **top** of the `r cl("polygon")` layer we have added two aesthetics:
+
+* `fill`: This argument overrides the default fill argument in ggplot ("black"). Take note that it is called outside the `r cl("aes")`-function (so it acts like a constant).
+* `colour`: Here we are letting the value of the variable sex control the colour displayed. Hence we call that argument within the `r cl("aes")`-function.
+
+We will be introduced to more aesthetics as we move along.
+
+## Zooming in on a plot
+
+We can zoom into a plot by specifying boundaries of the horizontal and vertical axis by calling the arguments xlim and ylim within the `r cl("coord_map")`-function.
 
 ```{r}
-p + geom_point(aes(size = stomach.volume))
+p + coord_map(xlim = c(-25, -20), ylim = c(65, 66.6))
 ```
 
-One can also "fix" the aesthetic manually, e.g.:
-
-```{r}
-p  + geom_point(colour = "blue", shape = 8, size = 10)
-```
-
-Note here that the call to colour, shape, etc. is done outside the <span style="color:red">aes</span>-call. One can also combine calls inside and outside the `aes`-function (here we showing overlay of adjacent datapoints):
-```{r}
-p + 
-  geom_point(aes(size = stomach.volume), alpha = 0.3, col = "red") +
-  scale_size_area(max_size = 10) +
-  geom_point(size = 0.1, colour = "blue")
-```
-
-#### Exercise
+## Exercise
 
 <div class="panel panel-warning">
 <div class="panel-heading">Exercise</div>
 <div class="panel-body">
 
-Create a code that results in these plots:
-
-```{r, echo = FALSE, out.width = "50%", fig.show = "hold"}
-
-```
-
-</div>
-</div>
-
-
-## Facetting
-___
-
-Splitting a graph into subsets based on a categorical variable. 
-
-```{r}
-p +
-  geom_point(aes(lon, lat)) +
-  facet_wrap(~ sex)
-```
-
-Here, the variable area is used to spit the plot depending on the location of the sample ("North" and "South").
-
-One can also split the plot using two variables using the function `facet_grid` (here, a very useless plot):
-
-```{r}
-p +
-  geom_point(aes(lon, lat)) +
-  facet_grid(sex ~ year)
-```
-
-
-
-```{r, out.width = "33%", fig.show = "hold"}
-
-```
-
-<div class="panel panel-warning">
-<div class="panel-heading">Exercise</div>
-<div class="panel-body">
-Create a code that results in this plot:
+* Emulate the following map of the Faeroe Islands (or use whatever country you like) using the data in the map-package (hint: Faeroe Island is a colony of a country).
+* What happens if you do not use the group-argument?
 
 ```{r, echo = FALSE}
-
+map_data("worldHires", region = "Denmark") %>% 
+  ggplot() +
+  geom_polygon(aes(long, lat, group = group),
+               fill = "grey", colour = "darkgreen") +
+  labs(x = NULL, y = NULL) +
+  coord_map(xlim = c(-9, -5), ylim = c(61.25, 62.5))
 ```
 
 </div>
 </div>
 
-
-
-## Some controls
+# Layers
 ___
 
-### labels
+Here we will only focus on ggplot `r cl("layers")` that are useful when plotting spatial data.
 
-```{r}
-p + 
-  geom_point(aes(colour = sex)) + 
-  labs(title = "My minke plot",
-       subtitle = "My nice subtitle",
-       x = "Longitude", y = "Latitute", 
-       colour = "Sex")
-```
-
-### axis label controls
-
-```{r}
-#devtools::install_github("einarhjorleifsson/ggmisc")
-library(ggmisc)
-p + 
-  geom_point(aes(colour = sex)) +
-  scale_x_continuous(breaks = seq(-25.5, -13.5, by = 1), labels = iceslabelsx,
-                     limits = c(-25.5, -13.5)) #+
- # scale_y_continuous(breaks = seq(63, 67, by = 0.5), labels = iceslabelsy)
-```
-
-iceslabelsx(seq(-28,-10, by = 1))
-
-### Legend position
-
-One can decide not show legend or set the controls somewhere within the plot:
-```{r, out.width = "50%", fig.show = "hold"}
-p + theme(legend.position = "none")
-p + theme(legend.position = c(0.5, 0.5))
-```
-
-In the call to legend position (the right plot) values are relative xy-values going from 0 to 1.
-
-### breaks
-
-Controls which values appear as tick marks
-
-```{r, out.width = "50%", fig.show = "hold", fig.height = 5}
-p + scale_x_continuous(breaks = c(-25:-10))
-p +
-  scale_x_continuous(breaks = seq(-25, -10, by = 1)) +
-  scale_y_continuous(breaks = seq(63, 67, by = 0.5))
-```
-
-### limits
-
-```{r, out.width = "33%", fig.show = "hold", fig.height = 5}
-p + xlim(-24, -22.5)
-p + xlim(NA, -22.5) # setting only upper limit
-```
-
-
-#### Formatting latitute and longitude
-
-```{r}
-# https://stackoverflow.com/questions/33302424/format-latitude-and-longitude-axis-labels-in-ggplot
-scale_longitude <- function(min = -180, max = 180, step = 1, ...) {
-  breaks <- seq(min, max, step)
-  labels <- 
-    ifelse(breaks < 0,
-           paste0(breaks, "\u00B0", "W"),
-           paste0(breaks, "\u00B0", "E"))
-  return(scale_x_continuous("Longitude", breaks = breaks, labels = labels, ...))
-}
-scale_latitude <- function(min = -90, max = 90, step = 0.5, ...) {
-  breaks <- seq(min, max, step)
-  labels <- 
-    ifelse(breaks < 0,
-           paste0(breaks, "\u00B0", "S"),
-           paste0(breaks, "\u00B0", "N"))
-  return(scale_y_continuous("Latitude", breaks = breaks, labels = labels, ...))
-}
-
-p <- 
-  ggplot(geo::island, aes(lon, lat)) +
-  coord_quickmap()
-p +
-  geom_path() +
-  scale_longitude(step = 2) +
-  scale_latitude(step = 1)
-```
-
-
-```{r}
-scale_longitude_ices <- function(min = -44, max = 68.5, step = 1, ...) {
-  breaks <- seq(min + 0.5, max - 0.5, step)
-  labels <- geo::d2ir(60, breaks) %>% str_sub(3)
-  return(scale_x_continuous(name = NULL, breaks = breaks, labels = labels, ...))
-}
-scale_latitude_ices <- function(min = 36, max = 84.5, step = 0.5, ...) {
-  breaks <- seq(min + 0.25, max - 0.25, step)
-  labels <- geo::d2ir(breaks, 0) %>% str_sub(1, 2)
-  return(scale_y_continuous(name = NULL, breaks = breaks, labels = labels, ...))
-}
-
-p +
-  geom_path() +
-  scale_longitude_ices() +
-  scale_latitude_ices()
-
-ir <- 
-  sf::read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_rectangles.gpkg") %>% 
-  filter(between(west, -25, -14),
-         between(south, 63, 66))
-ggplot() +
-  #geom_sf(data = ir) +
-  geom_path(data = geo::island, aes(lon, lat),
-            colour = "grey") +
-  geom_text(data = ir,
-            aes(x = west + 0.5, y = south + 0.25,
-                label = icesname),
-            angle = 45, 
-            colour = "red",
-            size = 3) +
-  scale_longitude_ices() +
-  scale_latitude_ices() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_line(size = 1),
-        axis.ticks = element_blank()) +
-  coord_quickmap()
-```
-
-
-## MESSY STUFF BELOW
-
-## DATRAS case example
-
-```{r}
-hh <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_haul.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-hl <-
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_length.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-
-hh %>% 
-  filter(survey == "IE-IGFS",
-         quarter == 4) %>% 
-  select(id, lon = shootlong, lat = shootlat) %>% 
-  left_join(hl %>% 
-              filter(latin %in% c("Sprattus sprattus",
-                                  "Melanogrammus aeglefinus",
-                                  "Trisopterus esmarkii",
-                                  "Scomber scombrus")) %>% 
-              group_by(id, latin) %>% 
-              summarise(n = sum(n))) %>% 
-  drop_na() %>% 
-  ggplot(aes(lon, lat, size = n)) +
-  scale_size_area(max_size = 20) +
-  geom_point(colour = "blue", alpha = 0.2) +
-  facet_wrap(~ latin) +
-  coord_quickmap()
-```
-
-
-
-
-#### warning
-
-
-Remedy:
-
-```{r}
-p + geom_boxplot() + coord_cartesian(ylim = c(600, 800))
-```
-
-
-
-
-
-## Selecting a background by boundaries
-
-Instead of selecting a specific named region of a map one can also specify the boundaries, E.g. to get a map of the North Sea:
-
-```{r}
-xlim <- c(-5, 12)
-ylim <- c(52, 60)
-m <- map_data("worldHires", xlim = xlim, ylim = ylim)
-ggplot(m, aes(long, lat, group = group)) +
-  geom_polygon() +
-  coord_quickmap(xlim = xlim, ylim = ylim, expand = FALSE)
-```
-
-Here there are two additional element introduced:
-
-* The **variable** group in the m-dataframe is a unique identifier of each separate shape (islands etc.). By specifying the **arguement** group in the `aes`-function one prevents that polygons are drawn across separate elements (try omitting the group-argument).
-* The limits are specified inside the call in function `coord_quickmap`. This is because the function `map_data` returns the whole regions that fall within the boundaries (try `coord_quickmap` without any argument).    
-
-#### Exercise
-
-<div class="panel panel-warning">
-<div class="panel-heading">Exercise</div>
-<div class="panel-body">
-
-1. Play around by selecting and plotting different regions or areas
-2. Read the `coord_map` help file for projections other than the default "mercator". Try to create a map that looks something along:
-
-```{r, echo = FALSE}
-map_data("world") %>% 
-  ggplot(aes(x = long, y = lat, group = group)) +
-  theme_bw() +
-  geom_polygon(fill = "grey") +
-  scale_y_continuous(NULL) +
-  scale_x_continuous(NULL) +
-  coord_map("ortho", xlim = c(-45,30), ylim = c(35,90))
-```
-
-</div>
-</div>
-
-## Overlay data on maps
-
-Now lets plot our minke data over a map:
-
-1. First we generate a background map:
+Since we are going to use some Icelandic survey data in the following example (and for the sake of code clarity) we first generate a reference background layer:
 ```{r}
 m <- 
   ggplot() +
-  theme_bw() +
-  geom_polygon(data = iceland, aes(long, lat, group = group), fill = "grey90") +
+  geom_polygon(data = iceland, aes(long, lat, group = group),
+               fill = "grey") +
   coord_map() +
-  labs(x = NULL, y = NULL)
+  scale_x_continuous(name = NULL, breaks = NULL) +
+  scale_y_continuous(name = NULL, breaks = NULL)
 ```
 
-2. Now add the minke data as a layer:
+The `r cl("scale_*_continuous")`-function is used here to suppress the default name and breaks that ggplot assigns (this would not need to be suppressed in R base-plot).
+
+## geom_segment
+
+The `r cl("segment")`-layer is useful when wanting to display some very simple vector data that only have a start and an end point. Lets take the tow location from the Icelandic spring survey as an example:
 
 ```{r}
-p1 <- m + geom_point(data = minke, aes(lon, lat, colour = sex))
-p2 <- m + 
-  geom_point(data = minke, aes(lon, lat, size = stomach.weight), colour = "red", alpha = 0.5) +
-  scale_size_area(max_size = 10)
-p1 + p2
+m +
+  geom_segment(data = smb,
+               aes(x    = lon1, y    = lat1,
+                   xend = lon2, yend = lat2))
 ```
 
+## geom_point
+
+We can assign a variable to the size argument in the `r cl("geom_point")`-layer, the size of the point then being some function of value of a variable. Lets visualize the abundance of cod:
+
+```{r}
+p <-
+  m +
+  geom_point(data = smb,
+             aes(lon1, lat1, size = cod_n),
+             alpha = 0.2,
+             colour = "red")
+p
+```
+
+Here we have introduced a new aesthetic named alpha. This argument controls the transparency of the bubble, the value going from 0 (invisible) to 1 (no transparency, the ggplot default).
+
+Besides the spatial patterns observed, there is one problem with this plot: The radius of the bubble size is not proportional to abundance. ggplot provides a very useful function to remedy this (now zero abundance gets a zero radius):
+
+```{r}
+p +
+  scale_size_area(max_size = 20)
+```
+
+The value assigned to max_size is a bit of a trial and error as well as personal preference.
+
+### Exercise
+
+<div class="panel panel-warning">
+<div class="panel-heading">Exercise</div>
+<div class="panel-body">
+
+* Create a code that emulates the following plot for the abundance of cod (or for any other variable of interest).
+
+```{r, echo = FALSE}
+ggplot() +
+  geom_polygon(data = iceland, aes(long, lat, group = group),
+               fill = "grey") +
+  coord_map() +
+  scale_x_continuous(name = NULL, breaks = NULL) +
+  scale_y_continuous(name = NULL, breaks = NULL) +
+  geom_segment(data = smb,
+               aes(x    = lon1, y    = lat1,
+                   xend = lon2, yend = lat2)) +
+  geom_point(data = smb,
+             aes(lon1, lat1, size = cod_n),
+             alpha = 0.2,
+             colour = "red") +
+  scale_size_area(max_size = 20)
+```
+
+</div>
+</div>
+
+## geom_path
+
+We have already shown a plot using the `r cl("path")`-layer, but just to create a background map. For a more appropriate demonstration lets use the track data from the 2019 spring survey. Besides the coordinate data the key additional element of this dataset is time, which it has already been ordered by.
+
+```{r}
+# move this to the header (or not)
+track <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv")
+```
+
+```{r}
+m +
+  geom_path(data = track,
+            aes(x = lon, y = lat, colour = vessel))
+```
+
+## geom_tile
+
+The survey data contains the ICES rectangles that a tow belongs (ir) to as well as the center coordinate position (ir_lon and ir_lat) we can use the `r cl("tile")`-layer to display some characteristics of the data (we will later deal with how this was achieved).
+
+However, since there is more than one tow in each tile we need first to generate some summary of the data by each rectangle (actually here by the center-points):
+
+```{r}
+s <-
+  smb %>% 
+  group_by(ir_lon, ir_lat) %>% 
+  summarise(Cod = mean(cod_n))
+p <-
+  m +
+  geom_tile(data = s,
+            aes(x = ir_lon, y = ir_lat, fill = Cod))
+p
+```
+
+Do not like the default colour?. Try:
+```{r, eval = FALSE}
+p +
+  scale_fill_viridis_c(option = "B", direction = -1)
+```
+
+This display has still at least two problems:
+
+* The background reference (Iceland) is now hidden behind some tiles (see exercise below).
+* The mapping of the value on the colour scale used may not be the most reviling (much more details on that later).
 
 
-## Depth contours
+#### Exercise
 
-In oceanography one is often interested in indicating depth. Global relief models from the ETOPO1 dataset hosted on a NOAA server can be accessed using the `getNOAA.bathy`-function in the marmap-package. To access them one specifies the boundary of the data of interest and then, since we are using ggplot for mapping are turned into a data frame using the `fortify`-function:
+<div class="panel panel-warning">
+<div class="panel-heading">Exercise</div>
+<div class="panel-body">
+
+Ameliorate the plot above such that is looks like this (you have to start from scratch):
+
+```{r, echo = FALSE}
+s <-
+  smb %>% 
+  group_by(ir_lon, ir_lat) %>% 
+  summarise(Cod = mean(cod_n))
+ggplot() +
+  geom_tile(data = s,
+            aes(x = ir_lon, y = ir_lat, fill = Cod)) +
+  geom_polygon(data = iceland, aes(long, lat, group = group),
+               fill = "grey") +
+  coord_map() +
+  scale_x_continuous(name = NULL, breaks = NULL) +
+  scale_y_continuous(name = NULL, breaks = NULL) +
+  scale_fill_viridis_c(option = "B", direction = -1)
+```
+
+</div>
+</div>
+
+## geom_raster
+
+The above plot using the `r cl("tile")`-layer is actually a kind of a raster plot, albeit the resolution being not very high.
+
+To demonstrate the use of the `r cl("raster")`-layer lets use the global relief models from the ETOPO1 dataset hosted on a NOAA server can be accessed using the `getNOAA.bathy`-function in the marmap-package (you need to install that package). To access them one specifies the boundary of the data of interest and then, since we are using ggplot for mapping are turned into a data frame using the `r cl("fortify")`-function:
 
 ```{r}
 xlim <- c(-28, -10)
 ylim <- c(62.5, 67.5)
-library(marmap)
+
 depth <- 
   getNOAA.bathy(lon1 = xlim[1], lon2 = xlim[2],
                 lat1 = ylim[1], lat2 = ylim[2],
                 resolution = 1) %>% 
-  fortify()  # turn the object into a data.frame
+  fortify() %>%  # turn the object into a data.frame
+  filter(z <= 0)
 glimpse(depth)
 ```
 
 So this data is just a set of x (longitude), y (latitudes) and z (depth). The dataset is a raster-grid which we can visualize by using the `geom_raster`-function:
 
 ```{r}
-depth %>% 
-  filter(z <= 0) %>% 
-  ggplot() +
-  theme_bw() +
-  geom_raster(aes(x, y, fill = z)) +
-  coord_quickmap(expand = FALSE)
+m +
+  geom_raster(data = depth,
+              aes(x = x, y = y, fill = z)) +
+  coord_quickmap(expand = FALSE) +
+  scale_x_continuous(name = NULL, breaks = NULL) +
+  scale_y_continuous(name = NULL, breaks = NULL) +
+  labs(fill = "Depth [m]")
 ```
 
-We generate the base map with contours as follows:
+## geom_contour
+
+We will later deal with the syntax for generating contours from rasters. However, as is often the case, ggplot provides a shortcut for generating contours based on raster data, the `r cl("conour")`-layer.
+
 ```{r}
-m <- ggplot() +
-  theme_bw() +
+m2 <- 
+  m +
   geom_contour(data = depth, aes(x, y, z = z),
                breaks = c(-25, -50, -100, -200, -400),
-               colour = "black", size=0.1) +
-  geom_polygon(data = iceland, aes(long, lat, group = group), fill = "grey") +
-  coord_quickmap(xlim = xlim, ylim = ylim, expand = FALSE) +
-  labs(x = NULL, y = NULL)
+               lwd = 0.1) 
+m2
 ```
 
-Lets just look at what we have created:
-```{r}
-m
-```
+Here we have specified to display the depth contours of 25, 50, 100, 200 and 400 meters.
 
-Here we have specified depth contour values of 25, 50, 100, 200 and 400 meters. Now we are ready to add the minke data or any other data of interest:
+Now we are ready to add the minke data or any other data of interest:
 
-```{r}
-m + geom_point(data = minke, aes(lon, lat), colour = "red")
+```{r, eval = FALSE}
+m2 + geom_point(data = minke, aes(lon, lat), colour = "red")
 ```
 
 
@@ -593,187 +419,34 @@ m + geom_point(data = minke, aes(lon, lat), colour = "red")
 <div class="panel-heading">Exercise</div>
 <div class="panel-body">
 
-1. Create a depth raster map of the region of your interest, e.g. for the longitudinal and latitudinal range that covers your data. If you do not have spatial data, use the NS-IBTS station data from the [Working with dates](pre_dates.html) presentation.
-2. Create a contour map of the region of your interest, specifying your own preference for the depth range to show.
-3. Overlay your own data on top of the contour map.
-4. Try a plot where the raster image of depth is the background, overlay the contours and then your data. Although the image may look sexy, think about the **main** message your are trying to convey to the recipient of such a plot.
+1. Create a depth raster map of the region of your interest.
+2. Create a contour map of the region of your interest, specifying your own preference for the depth values to display.
 
-</div>
-</div>
+and / or
 
+3. Create a code that emulates the following plot
 
-
-## Background images
-
-The ggmap-packages allows one to obtain background images from the web via the `get_map`-function:
-```{r, eval = FALSE}
-# NOT RUN: A bug
-m2 <- get_map(location = c(-19,65), zoom= 6, source = "osm")
-m2 <- ggmap(m2) +
-  labs(x = NULL, y = NULL)
-m2
-```
-
-<div class="panel panel-warning">
-<div class="panel-heading">Exercise</div>
-<div class="panel-body">
-
-1. Read the help file for `get_map` and explore some different maptypes and sources available.
-2. Overlay the contours just generated on top of such a map
-3. Overlay the minke data
-
-
-```{r, echo = FALSE, eval = FALSE}
-m2 + 
-  geom_contour(data = depth, aes(x, y, z = z),
-               breaks=c(-50, -100, -200, -400),
-               colour="white", size=0.2) +
-  geom_point(data = minke, aes(lon, lat), colour = "red")
-```
-
-</div>
-</div>
-
-
-## Shapefiles
-
-Myriads of useful shapefiles are available on the web, including the ices web. An example is the shapefile that contains the 10 "NS-IBTS roundfish areas" of the North Sea. We can obtain it directly from within R via:
-
-* First we use the `download.file` function, specifying the web location and the destination of where we want to store the file.
-* Unzip the file using `unzip` function specifying where we want the content of the zipped file to be stored. 
-
-```{r, eval = FALSE}
-download.file(url = "http://gis.ices.dk/Shapefiles/6951716_output.zip",
-              destfile = "data/6951716_output.zip", mode = "wb")
-unzip("data/6951716_output.zip", exdir = "data")
-```
-
-If you now look into the data directory you will have four files starting with "Shapefile" and then four different suffixes. These are standard ESRI files that can be read into R via myriads of functions. Lets use the `st_read` function from the sf-package (which is currently in the process of development):
-```{r, eval = FALSE}
-library(sf)
-ns_area <- sf::st_read("data/Shapefile.dbf", quiet = TRUE)
-class(ns_area)
-```
-
-We observe that this is a specialized dataframe. Lets take a peek:
-```{r, eval = FALSE}
-ns_area
-```
-
-It is beyond the scope of this course to dig deeply into spatial data, but a simple visualization can be obtained via:
-
-```{r, eval = FALSE}
-ns_area %>% 
-  mutate(AreaName = as.integer(AreaName)) %>% 
-  ggplot() +
-  theme_bw() +
-  geom_sf(aes(fill = factor(AreaName))) +
-  scale_fill_brewer(palette = "Set3") +
-  labs(title = "North Sea roundfish area",
-       subtitle = "Used for generation of age-length-keys",
-       fill = "ALK areas") 
-```
-
-
-
-We are often interested in summarizing spatial data onto a grid for presentations. A typical example are logbook data which often can hold millions of records. Lets read in some bottom trawl logbook data from Iceland:
-
-```{r, eval = FALSE}
-# You can download the data from
-# http://www.hafro.is/~einarhj/data/logbooks_station.csv
-# http://www.hafro.is/~einarhj/data/logbooks_catch.csv
-station  <- read_csv("data/logbook_station.csv")
-glimpse(station)
-```
-
-So we have some 100+ thousand tows with information of towtime (in minutes).
-
-As an example we could summarize the effort by year and ICES statistical rectangle as follows (read the help file on `d2ir`):
-```{r, eval = FALSE}
-st <- 
-  station %>% 
-  mutate(year = year(date),
-         sq = geo::d2ir(lat, lon)) %>% 
-  group_by(year, sq) %>% 
-  summarize(effort = sum(towtime / 60, na.rm = TRUE))
-glimpse(st)
-```
-
-We have condensed the data to some 292 records but in doing so we have lost the information on the coordinates. Hence before we proceed with any plotting we need to get the central position of the ICES rectangles (using the inverse of the function above):
-```{r, eval = FALSE}
-st %>% 
-  mutate(lon = geo::ir2d(sq)$lon,     # get the central position of
-         lat = geo::ir2d(sq)$lat) %>% #   the ices rectangle
-  ggplot() +
-  theme_bw() +
-  geom_raster(aes(lon, lat, fill = effort/1e3)) +  
-  geom_polygon(data = iceland, aes(long, lat, group = group), fill = "grey") +
-  coord_quickmap() +
+```{r}
+ggplot() +
+  geom_raster(data = depth,
+              aes(x = x, y = y, fill = z)) +
+  geom_contour(data = depth,
+               aes(x = x, y = y, z = z),
+               breaks = -400,
+               colour = "white") +
+  geom_segment(data = smb,
+               aes(x = lon1, y = lat1,
+                   xend = lon2, yend = lat1),
+               colour = "cyan") +
+  geom_point(data = smb,
+             aes(x = lon1, y = lat1, size = cod_age1),
+             colour = "red",
+             alpha = 0.5) +
+  scale_size_area(max_size = 10) +
   scale_x_continuous(name = NULL, breaks = NULL) +
   scale_y_continuous(name = NULL, breaks = NULL) +
-  scale_fill_continuous(type = "viridis", option = "B", direction = -1) +
-  labs(fill = "Effort",
-       title = "Bottom trawl effort in 1000 hours") +
-  facet_wrap(~ year)
-```
-
-
-<div class="panel panel-warning">
-<div class="panel-heading">Exercise</div>
-<div class="panel-body">
-
-0. Repeat the exercise but use some tile-map background.
-
-**Will visit the exercise below once we gone through the join family of functions**.
-
-In addition to the station (tow) file there is an associated file containing information on the catches (kg) by species in each tow (logbook_catch.csv).
-
-1. Read in the file (you download it from the sharepoint)
-2. Select two species, e.g. *S. mentella* (61) and plaice (23), summarize the catch of each by year and ICES rectangle and plot it.
-3. Add some contours, e.g. 250 and 1000 meters depth to the plot
-
-
-```{r, echo = FALSE, eval = FALSE}
-catch <- read_csv("data/logbook_catch.csv")
-station %>% 
-  mutate(year = year(date),
-         sq = geo::d2ir(lat, lon)) %>% 
-  left_join(catch %>% filter(species %in% c(23, 61))) %>% 
-  group_by(year, sq, species) %>% 
-  summarise(catch = sum(catch, na.rm = TRUE) / 1e6) %>% 
-  filter(catch > 0) %>% 
-  mutate(lon = geo::ir2d(sq)$lon,     # get the central position of
-         lat = geo::ir2d(sq)$lat) %>% #   the ices rectangle
-  ggplot() +
-  theme_bw() +
-  geom_raster(aes(lon, lat, fill = catch)) +  
-  geom_contour(data = depth, aes(x, y, z = z),
-               breaks=c(-300, -1000),
-               colour = "blue", size=0.2) +
-  geom_polygon(data = iceland, aes(long, lat, group = group), fill = "grey") +
-  coord_quickmap() +
-  scale_x_continuous(name = NULL, breaks = NULL) +
-  scale_y_continuous(name = NULL, breaks = NULL) +
-  scale_fill_continuous(type = "viridis", option = "B", direction = -1) +
-  labs(fill = "Catch",
-       title = "Catch in kt") +
-  facet_grid(species ~ year)
+  coord_quickmap()
 ```
 
 </div>
 </div>
-
-
-
-
-
-
-## Further readings
-___
-
-* The ggplot2 site: http://docs.ggplot2.org/current
-* The ggplot2 book in the making: https://github.com/hadley/ggplot2-book
-- A rendered version of the book: http://www.hafro.is/~einarhj/education/ggplot2
-- needs to be updates
-* R graphics cookbook: http://www.cookbook-r.com/Graphs
-
