@@ -14,7 +14,7 @@ output:
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-# Preamble
+# Dataset overview
 ___
 
 The data used as examples in the course are all stored at this location [ftp://ftp.hafro.is/pub/data](ftp://ftp.hafro.is/pub/data). To obtain the path for reading any file into R it is simplest to:
@@ -45,10 +45,9 @@ library(tidyverse)
 key <- "pk.eyJ1IjoiZmlzaHZpY2UiLCJhIjoiY2p0MXQ5dThpMDZqeDQ5bHM0MGx4dHI5cyJ9.Fed_z7mv_TgTWDRjiavU3A" 
 ```
 
-
 ## Minke
 
-The minke whale dataset contains biological measurements from 192 scientific catches of minke whales between the year 2003 and 2007. The data set contains the following variables:
+The minke whale dataset contains biological measurements from 192 scientific catches of minke whales between the year 2003 and 2007. The variables are as follows:
 
 * **whale.id**: Unique identifier for the whale
 * **date.caught**: the date when the whales was caught
@@ -64,13 +63,74 @@ The minke whale dataset contains biological measurements from 192 scientific cat
 * **stomach.weight**: weight of the stomach content
 * **year**: the year when the whale was caught
 
-**To read the data into R**:
+**Importing the data into R**:
 
 ```{r, eval = FALSE}
 minke <- 
   read.csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble()
+```
+
+## Icelandic bottom trawl spring survey (SMB)
+
+TODO: 
+
+* select only certain variables
+* anglosize
+* check using t1 and t2
+
+The smb dataset contains 19846 tows from the annual Icelandic bottom trawl spring survey from years 1985 to 2019. It is in a long format, each row representing a single tow. The variables are as follows:
+
+* **id**: Unique station identification code
+* **date**: The date
+* **vid**: Vessel identification number
+* **tow_id**: Tow identification number
+* **t1**: Time of tow start (shoot time)
+* **t2**: Time of tow end (haul time)
+* **lon1**: Longitude of tow start, decimal degrees
+* **lat1**: Latititue of tow start, decimal degrees
+* **lon2**: Longitude of tow end, decimal degrees
+* **lat2**: Latitute of tow end, decimal degrees
+* **z1**: Bottom depth at tow start
+* **z2**: Bottom depth at tow end
+* **speed**: Average towing speed in knots
+* **duation**: Duration of tow in minutes
+* **towlength**: Length of tow in nautical miles
+* **horizontal**: Horizontal net opening in meters
+* **vertical**: Vertical net opening in meters
+* **wind**: Wind strength, Beufort scale
+* **wind_direction**: Wind directions in degrees
+* **bormicon**: Bormicon identification number (see Bormicon shapefile below)
+* **oldstrata**: Old stratification identification number
+* **newstrata**: New stratification  identification number
+* __**_kg__: Species biomass in kilograms, standardized to 4 nautical miles
+* __**_n__: Species abundance, standardize to 4 nautical miles
+
+**Importing the data into R**:
+
+```{r}
+d <- read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv",
+              stringsAsFactors = FALSE)
+```
+
+## SMB 2019 vessel tracks
+
+The dataset are 8918 ais/vms records of four vessels that participated in the Icelandic spring survey in 2019. The variables are as follows:
+
+* **vid**: Vessel identification number
+* **vessel**: Vessel name
+* **time**: Time in UTC
+* **lon**: Longitude in decimal degrees
+* **lat**: Latitude in decimal degrees
+* **speed**: Vessel speed in knots
+* **heading**: Vessel headings in degrees
+
+**Importing the data into R**:
+```{r}
+d <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv",
+           stringsAsFactors = FALSE)
 ```
 
 ## IESSNS 2019 survey
@@ -81,17 +141,15 @@ Dataset contains VMS tracks of 5 vessels that participated in IESSNS 2019 survey
 
 * **vessel**: The vessel name
 * **time**: Time in UTC
-* **lon**: Degrees longitude
-* **lat**: Degrees latitute
+* **lon**: Longitude in decimal degrees
+* **lat**: Latitude in decimal degrees
 * **speed**: Vessel speed in knots
 * **heading**: Vessel heading in dregrees
 
 ```{r, eval = FALSE}
 trail <- 
   read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_trail.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-trail %>% glimpse()
+           stringsAsFactors = FALSE)
 ```
 
 ### tows
@@ -149,8 +207,58 @@ hl <- read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_length.csv",
 ```
 
 
-# Shapes
+## Shapes
 ___
+
+
+### Bormicon
+
+```{r, eval = FALSE}
+check_last_point <- function(df) {
+  
+  groups <- df %>% pull(group) %>% unique()
+  
+  res <- list()
+  
+  for(i in 1:length(groups)) {
+    
+    x <- df %>% filter(group == groups[i])
+    
+    if(x$lat[1] != x$lat[nrow(x)]) {
+      res[[i]] <-
+        tibble(lat = c(x$lat, x$lat[1]),
+               lon = c(x$lon, x$lon[1]),
+               group = c(x$group, x$group[1]))
+    } else {
+      res[[i]] <- x
+    }
+  }
+  bind_rows(res)
+}
+d <- 
+  tibble(nafn = attributes(fjolst::reg.bc)$names,
+         area = attributes(fjolst::reg.bc)$area) %>% 
+  mutate(nr = 1:n(),
+         name = c("W", "NW", "N_center", "N_shallow",
+                  "NE", "E", "E_ridge", "SE",
+                  "S_SE", "S_SW", "NW_deep", "NE_deep",
+                  "S_deep", "W_ridge", "W_deep", "N_deep"))
+
+bormicon <-
+  fjolst::reg.bc %>%
+  bind_rows(.id = "group") %>%
+  check_last_point() %>%        # see function below
+  sf::st_as_sf(coords = c("lon","lat")) %>%
+  sf::st_set_crs(4326) %>%
+  group_by(group) %>%
+  summarise(do_union = FALSE) %>%
+  sf::st_cast("POLYGON")  %>%  # turn MULTIPOINT TO POLYGON
+  rename(nafn = group) %>% 
+  left_join(d) %>% 
+  arrange(nr)
+st_write(bormicon, "/net/www/export/home/ftp/pub/data/shapes/bormicon.gpkg")
+```
+
 
 
 ### ICES shapes
@@ -205,17 +313,17 @@ read_zipped_shapes <- function(url, simplify = FALSE, make_valid = TRUE) {
     dplyr::rename_all(tolower)
   file.remove(fil)
   
-  if(!all(st_is_valid(sp)) & make_valid) {
+  if(!all(sf::st_is_valid(sp)) & make_valid) {
     sp <- sp %>% lwgeom::st_make_valid()
   }
   
   if(simplify) sp <- rmapshaper::ms_simplify(sp)
-
-  if(is.na(st_crs(sp)$epsg)) {
+  
+  if(is.na(sf::st_crs(sp)$epsg)) {
     # assume it is 4326
-    sp <- sp %>% st_set_crs(value = 4326)
+    sp <- sp %>% sf::st_set_crs(value = 4326)
   } else {
-    if(st_crs(sp)$epsg != 4326) sp <- sp %>% st_transform(crs = 4326)
+    if(sf::st_crs(sp)$epsg != 4326) sp <- sp %>% sf::st_transform(crs = 4326)
   }
   
   return(sp)
@@ -236,7 +344,7 @@ write_sf(p, "/net/www/export/home/ftp/pub/data/shapes/nephrops_fu.gpkg")
 ```
 
 **view**:
-```{r}
+```{r, echo = FALSE}
 p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/nephrops_fu.gpkg")
 p %>% 
   mapdeck(token = key) %>% 
@@ -256,14 +364,14 @@ write_sf(p, "/net/www/export/home/ftp/pub/data/shapes/ices_areas.gpkg")
 ```
 
 **view**:
-```{r}
+```{r, echo = FALSE}
 p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_areas.gpkg")
 p %>% 
   mapdeck(token = key) %>% 
   add_polygon(fill_colour = "area_27",
-         tooltip = "area_27",
-         stroke_colour = adjustcolor("red", alpha.f = 1),
-         stroke_width = 1000)
+              tooltip = "area_27",
+              stroke_colour = adjustcolor("red", alpha.f = 1),
+              stroke_width = 1000)
 ```
 
 #### ICES ecoregions
@@ -278,15 +386,15 @@ p %>% write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_ecoregions.gpkg")
 ```
 
 **view**:
-```{r}
+```{r, echo = FALSE}
 p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg")
 p %>% 
   mapdeck(token = key) %>% 
   add_polygon(fill_colour = "ecoregion", 
-         tooltip = "ecoregion",
-         #palette = "rainbow",
-         stroke_colour = adjustcolor("red", alpha.f = 1),
-         stroke_width = 10000)
+              tooltip = "ecoregion",
+              #palette = "rainbow",
+              stroke_colour = adjustcolor("red", alpha.f = 1),
+              stroke_width = 10000)
 ```
 
 #### OSPAR (from ICES)
@@ -298,7 +406,7 @@ p %>% write_sf("/net/www/export/home/ftp/pub/data/shapes/ospar.gpkg")
 ```
 
 **view**:
-```{r}
+```{r, echo = FALSE}
 p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ospar.gpkg")
 p %>% 
   mapdeck(token = key) %>% 
@@ -317,7 +425,7 @@ p %>% write_sf("/net/www/export/home/ftp/pub/data/shapes/helcom.gpkg")
 ```
 
 **view**:
-```{r}
+```{r, echo = FALSE}
 p <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/helcom.gpkg")
 p %>% 
   mapdeck(token = key) %>% 
@@ -332,7 +440,11 @@ p %>%
 ```{r, eval = FALSE}
 url <- "http://gis.ices.dk/shapefiles/ICES_rectangles.zip" 
 p <- read_zipped_shapes(url)
-write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_rectangles.gpkg")
+write_sf(p, "/net/www/export/home/ftp/pub/data/shapes/ices_rectangles.gpkg")
+```
+
+```{r}
+rect <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_rectangles.gpkg")
 ```
 
 #### ICES statistical subrectangles
@@ -370,7 +482,7 @@ p %>% write_sf("/net/www/export/home/ftp/pub/data/shapes/helcom.gpkg")
 Download available 2019 DATRAS data:
 ```{r, eval = FALSE}
 
- 
+
 ```
 
 ```{r, eval = FALSE}
@@ -387,6 +499,143 @@ hl <-
   dtrs_tidy_hl(hh, species)
 write_csv(hh, "/net/www/export/home/ftp/pub/reiknid/einar/data/datras/nsibts_hh.csv", na = "")  
 write_csv(hl, "/net/www/export/home/ftp/pub/reiknid/einar/data/datras/nsibts_hl.csv", na = "")  
+```
+
+```{r, echo = FALSE}
+hh <- read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_haul.csv",
+               stringsAsFactors = FALSE)
+hl <- read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_length.csv",
+               stringsAsFactors = FALSE)
+d <- 
+  hh %>% 
+  select(id, lon = shootlong, lat = shootlat) %>% 
+  full_join(hl %>% 
+              filter(latin == "Pleuronectes platessa") %>% 
+              group_by(id) %>% 
+              summarise(n = sum(n) / 1e3)) %>% 
+  mutate(n = ifelse(is.na(n), 0, n),
+         n = ifelse(n > 10, 10, n)) %>% 
+  drop_na() %>% 
+  arrange(-n) %>% 
+  mutate(r = n * 1e4)
+mapdeck(toke = key) %>% 
+  add_scatterplot(data = d %>% filter(n == 0),
+                  lon = "lon",
+                  lat = "lat",
+                  radius = 5000,
+                  fill_colour = adjustcolor("blue", alpha.f = 0.3),
+                  layer_id = "zero") %>% 
+  add_scatterplot(data = d %>% filter(n > 0),
+                  lon = "lon",
+                  lat = "lat",
+                  tooltip = "n",
+                  radius = "r",
+                  fill_colour = adjustcolor("red", alpha.f = 0.3),
+                  layer_id = "plus")
+```
+
+## Appendix - data generation
+
+What follows is just bookeeping the source of the data as well as documentation of any data manipulation done.
+
+### Icelandic bottom trawl spring survey (SMB)
+
+```{r, eval = FALSE}
+attach("/u2/reikn/R/SurveyWork/SMB/catchperstation.rdata")
+library(mar)
+con <- connect_mar()
+st <- 
+  lesa_stodvar(con) %>% 
+  filter(synaflokkur == 30) %>% 
+  mutate(tow_id = paste0(reitur, "-", tognumer)) %>% 
+  select(id = synis_id, t1 = togbyrjun, t2 = togendir, tow_id) %>% 
+  collect(n = Inf)
+utbrteg %>% 
+  rename(id = synis.id) %>% 
+  left_join(st) %>% 
+  select(id,
+         date = dags,
+         vid = skip,
+         tow_id,
+         t1,
+         t2,
+         lon1 = kastad.v.lengd,
+         lat1 = kastad.n.breidd,
+         lon2 = hift.v.lengd,
+         lat2 = hift.n.breidd,
+         z1 = dypi.kastad,
+         z2 = dypi.hift,
+         tmp1 = yfirbordshiti,
+         tmp2 = botnhiti,
+         speed = toghradi,
+         duration = togtimi,
+         towlength = toglengd,
+         horizontal = larett.opnun,
+         verical = lodrett.opnun,
+         wind = vindhradi,
+         wind_direction = vindatt,
+         bormicon = area,
+         oldstrata,
+         newstrata,
+         cod_kg = torskur.kg,
+         cod_n = torskur.stk,
+         haddock_kg = ysa.kg,
+         haddock_n = ysa.stk,
+         saithe_kg = ufsi.kg,
+         saithe_n = ufsi.stk,
+         wolffish_kg = steinbitur.kg,
+         wolffish_n = steinbitur.stk,
+         plaice_kg = skarkoli.kg,
+         plaice_n = skarkoli.stk,
+         cod_age1 = torskur.1.stk,
+         cod_age2 = torskur.2.stk,
+         cod_age3 = torskur.3.stk,
+         cod_gt60cm_kg = torskur.gt.60.kg,
+         cod_gt80cm_kg = torskur.gt.80.kg,
+         haddock_age1 = ysa.1.stk,
+         haddock_age2 = ysa.2.stk,
+         haddock_age3 = ysa.3.stk,
+         plaice_n = skarkoli.stk,
+         monkfish_kg = skotuselur.kg,
+         monkfish_n = skotuselur.stk,
+         polarcod_n = iskod) %>% 
+  write_csv("/net/www/export/home/ftp/pub/data/csv/is_smb.csv")
+```
+
+## SMB 2019 AIS/VMS tracks
+
+```{r, eval = FALSE}
+library(mar)
+library(lubridate)
+con <- connect_mar()
+track <- 
+  stk_trail(con) %>% 
+  filter(time >= to_date("2019-02-26", "YYYY.MM.DD"),
+         time <= to_date("2019-03-22", "YYYY.MM.DD")) %>% 
+  collect(n = Inf) %>% 
+  filter(mid %in% c(101109, 101143, 101070, 102571)) %>% 
+  left_join(tibble(mid = c(101109, 101143, 101070, 102571),
+                   vid = c(2350, 1131, 1277, 1281),
+                   vessel = c("Árni", "Bjarni", "Ljósafell", "Múlaberg"),
+                   dep = c(ymd_hms("2019-02-26 01:00:00"),
+                           ymd_hms("2019-02-26 01:00:00"),
+                           ymd_hms("2019-02-27 01:00:00"),
+                           ymd_hms("2019-03-01 01:00:00")),
+                   arr =  c(ymd_hms("2019-03-22 23:00:00"),
+                            ymd_hms("2019-03-22 23:00:00"),
+                            ymd_hms("2019-03-16 23:00:00"),
+                            ymd_hms("2019-03-19 23:00:00")))) %>% 
+  filter(time >= dep,
+         time <= arr) %>% 
+  
+  arrange(vessel, time) %>% 
+  group_by(vessel) %>% 
+  mutate(dist = geo::arcdist(lead(lat), lead(lon), lat, lon),   # distance to next point
+         time2 = as.numeric(lead(time) - time) / (60 * 60), # duration to next point
+         speed2 = dist/time2) %>%                           # speed    on next "leg"
+  filter(speed2 <= 20 | is.na(speed2)) %>% 
+  select(vid, vessel, time, lon, lat, speed, heading) %>% 
+  write_csv("/net/www/export/home/ftp/pub/data/csv/is_smb_vms2019.csv")
 ```
 
 
