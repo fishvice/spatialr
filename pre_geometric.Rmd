@@ -19,9 +19,6 @@ library(sf)
 ```
 
 ## Operating with single geometries in sf object
-
-https://keen-swartz-3146c4.netlify.com/geommanip.html
-
 The package **sf** provides a large set of functions to query properties of sf objects and to combine sf objects to form new geometries.
 
 Geometric operations (and the **sf** functions that implement them) can be classified as:
@@ -178,8 +175,9 @@ Sometimes we want to make a polygon of the bounding box of a geometry.  For this
 ```{r }
 box <- st_make_grid(nfu, n = 1)
 
-
 ```
+The *st_graticule()* can be used to create a set of lines with constant latitude or longitude, which can be added to maps as reference.
+
 #### Simplification
 
 Sometimes it is necessary to simplify vector data, reducing the memory, disk space and bandwidth they require, and speeding up geometrical operations.  For this we use the *st_simplify()* function.
@@ -325,3 +323,44 @@ lg_ices_er <- ices_er %>%
 all_ices_er <- rbind(sm_ices_er, lg_ices_er)
 
 ```
+## Relationship between attributes and geometry
+Most **sf** objects contain attributes and geometry.  Because geometric operations do not change existing attributes, we need to be careful about if the attributes *make sense* in terms of the new geometries.
+
+Example:
+
+- We take some trawls within a polgyon representing our study area.
+- We calculate the total abundance of some species (say cod) in that polygon.  This is an attribute of the polygon (POP_COD)
+- We split the polygon into three areas based on bottom depth.
+- The attribute POP_COD is assigned to the three depthbased polygons... but it is not "right" anymore.
+
+We need to distinguish between three attributegeometry relationships (AGR)
+
+1. **Constant attributes**.  They are valid everywhere within a geometry.  Examples: bottom type, depth class.
+2. **Aggregate attributes**. They are a summary value over the geometry.  Examples: total abundance, mean abundance.
+3. **Identity attributes**. They identify uniquely the *entire* geometry.  Example: EEZs, ICES ecoregions.  A sample of this geometry has not the identity property anymore.  It becomes a constant attribute.
+
+When we operate with geometries, the **sf** package gives a warning that attributes assumed to be constant over a geometry (which may be true or not).
+
+```{r }
+st_centroid(ices_er) %>%
+  head(1)
+
+```
+We can specify the AGR like this:
+
+```{r }
+st_agr(ices_er) # None of the variables have a set AGR.
+
+st_agr(ices_er) <- c(ecoregion = "identity",
+                     area_km2 = "aggregate",
+                     zone = "constant")
+
+st_agr(ices_er) # Now they do.
+
+ices_ct <- st_centroid(ices_er)
+
+st_agr(ices_er)
+st_agr(ices_ct)
+
+```
+

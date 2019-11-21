@@ -8,6 +8,7 @@ output:
     theme: cerulean
     toc: yes
     toc_float: yes
+    toc_depth: 2
 ---
 ```{r, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -119,10 +120,7 @@ Here we used the *st_point()* function to convert a vector into an *sfg* object.
 
 Rarelly you will need to build *sf* objects from scratch.  More often you will have data with coordinates and will want to convert that data into an *sf* object.  We will do this, but first let's learn a bit more about sf objects.
 
-
-
-
-#### What is a list column?
+#### What is a list column anyway?
 Let's remember that  data frame is also a list with vectors of the same length.
 
 ```{r }
@@ -155,11 +153,10 @@ List columns are used in sf objects to store its geometry.
 Let's take a look at a "real" sf object, in this case the ICES areas.  
 
 ```{r }
-ices_areas <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_areas.gpkg")
+is_areas <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/bormicon.gpkg")
+class(is_areas)
 
-class(ices_areas)
-
-head (ices_areas)
+head (is_areas)
 
 ```
 
@@ -176,27 +173,27 @@ Next you can see the data, including columns with the subarea, division, and are
 We can extract the metadata elements like this:
 
 ```{r}
-st_geometry_type(ices_areas)
+st_geometry_type(is_areas)
 ```
 
 In this case the 20 features in this data set have the same geometry (POLYGON).
 
 This gets the coordinate reference system:
 ```{r}
-st_crs(ices_areas)
+st_crs(is_areas)
 ```
 
 This gets the bounding box:
 ```{r}
-st_bbox(ices_areas)
+st_bbox(is_areas)
 
 ```
 
 We can also use the usual functions in *sf* objects:
 ```{r}
-nrow(ices_areas)
-ncol(ices_areas)
-names(ices_areas)
+nrow(is_areas)
+ncol(is_areas)
+names(is_areas)
 ```
 
 
@@ -222,7 +219,7 @@ For a quick look, we can use the **plot()** function.  This uses R's base graphs
 By default, **plot()** makes a map for each column.
 
 ```{r }
-plot(ices_areas)
+plot(is_areas)
 
 ```
 
@@ -230,7 +227,7 @@ To only plot the geometry we can do the following:
 
 ```{r }
 
-plot(ices_areas %>%
+plot(is_areas %>%
 	st_geometry())
 
 ```
@@ -240,50 +237,40 @@ Let's try the **ggplot2** package with *geom_sf()*.
 
 ```{r }
 
-ices_areas %>%
+is_areas %>%
   ggplot() +
   theme_bw() +
-  geom_sf(aes(fill = area_km2)) +
-  labs(fill = "Area (km2)")
+  geom_sf(aes(fill = name)) +
+  labs(fill = "Area")
 
 ```
 
-In the *ices_areas* object, the geometry type is a POLYGON, as individual ICES areas are continuous.  Because they often they contain islands, the geometry of the islands is also included.  In this cases the direction of points (clockwise or anticlockwise) indicating the topology.  
+In the *is_areas* object, the geometry type is a POLYGON, as individual reporting areas are continuous.  Often continous areas have "holes" (for example islands).  In these cases the direction of points (clockwise or anticlockwise) indicating the topology.  
 
-```{r }
-ices_areas$geom[[4]]
-
-```
-
-## Making your own sf objects
+## Making our own sf objects
 Very often the first step in our spatial analysis and mapping is to convert external objects into *sf* objects.  This is done using the *st_as_sf()* function.
 
-In the simplest case, our data is comprised of individual point observations, with associated data.  In this case an *sf* object with geometry type POINT will suffice.  In the minke data set, we have observations for individual whales.
+In the simplest case, our data is comprised of individual point observations, with associated data.  In this case an *sf* object with geometry type POINT will suffice.  Let's get some data from the Icelandic bottom trawl survey:
 
 
 ```{r }
 
-minke <- read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv")
+smb <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv")
 
-minke
+smb
 
-minke <- read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv") 
-
-minke <- read_csv("./data/minke.csv") %>%
-  st_as_sf(coords = c("lon", "lat"), crs = 4326)
-minke
-
+smb <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv") %>%
+  st_as_sf(coords = c("lon1", "lat1"), crs = 4326)
+smb
 ```
-We used the coords argument passing the column names with the longitude (or x coordinate) *first*, and the latitude (or y corrdinate) *second* (this is a common mistake).  We also specifed the coordinate reference system (4326 is the ESPG code for unprojected data using the WSG84 datum),
+We created a POINT geometry with the starting and ending of each tow (lat1 and lon1) using the coords argument to pass the column names with the longitude (or x coordinate) *first*, and the latitude (or y corrdinate) *second* (this is a common mistake).  We also specifed the coordinate reference system (4326 is the ESPG code for unprojected data using the WSG84 datum).
 
-Note that the "lon" and "lat" columns have disappeared and instead we have the "geometry" column.  If we want to keep a copy of the "lon" and "lat" columns we can use the argument remove=FALSE.
+Note that the "lon1" and "lat1" columns have disappeared and instead we have the "geometry" column.  If we want to keep a copy of the "lon1" and "lat1" columns we can use the argument remove=FALSE.
 
-
-
-Another example.  Here we have VMS data from some bottom trawls.  The data contains a series of locations (latitude and longitude) during each trawl.  If we do the same as in the mike dataset, we obtain an *sf* object with POINT geometry.
+Another example.  Here we have VMS data from some bottom trawls.  The data contains a series of locations (latitude and longitude) during each trawl.  If we do the same as in the smb dataset, we obtain an *sf* object with POINT geometry.
 
 ```{r }
-vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/small_vms.csv") %>%
+vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv") %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
 vms
 
@@ -296,8 +283,10 @@ But this is not what we want.  Rather than just points, we want to join the poin
 
 
 ```{r }
-vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/small_vms.csv") %>%
+vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv") %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  mutate(fishing = if_else(speed>2 & speed <4,TRUE,FALSE))
+  
   group_by(id) %>%
   summarise(do_union = FALSE) %>%
   st_cast("LINESTRING")
@@ -309,6 +298,34 @@ ggplot() +
   theme(legend.position = "none")
 
 ```
+
+#### Tracks with start and end locations
+The *sdm* object contains the latitud and longitude at the start and end of each haul.  Let's make a it a LINESTRING, with straight lines for each haul.
+
+```{r}
+
+smb <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv")
+
+track <- smb %>% 
+  dplyr::select(id, 
+                lat_1 = lat1, 
+                lon_1 = lon1,
+                lat_2 = lat2,
+                lon_2 = lon2) %>% 
+  filter(!is.na(lat_2),
+         !is.na(lon_2)) %>% 
+  pivot_longer(cols = -id) %>% 
+  separate(name, sep = "_", into = c("info", "num")) %>%
+  pivot_wider(names_from = info) %>%
+  st_as_sf(coords = c ("lon", "lat"), crs = 4326) %>%
+  group_by(id) %>%
+  summarize(do_union = FALSE) %>%
+  st_cast("LINESTRING")
+
+
+```
+
+
 
 ## Operating with attributes in sf objects
 
