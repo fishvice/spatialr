@@ -124,8 +124,8 @@ names(temps)
 
 # I can pass a vector with paths to files
 
-files <- c("./data_raw/Iceland_minbtemp.tif",
-           "./data_raw/Iceland_maxbtemp.tif")
+files <- c("ftp://ftp.hafro.is/pub/data/rasters/Iceland_minbtemp.tif",
+           "ftp://ftp.hafro.is/pub/data/rasters/Iceland_maxbtemp.tif")
 
 temps <- stack(files)
 
@@ -137,7 +137,6 @@ plot(mintemp)
 
 plot(temps)
 
-
 ```
 
 ## Raster metadata
@@ -146,7 +145,7 @@ If we print the raster we can see the metadata, including the dimension, resolut
 We can use the *GDALinfo()* function in the **rgdal** package to extract the metadata.
 
 ```{r }
-capture.output(GDALinfo("./data_raw/Iceland_minbtemp.tif"))
+capture.output(GDALinfo("ftp://ftp.hafro.is/pub/data/rasters/Iceland_minbtemp.tif"))
 
 ```
 
@@ -172,7 +171,7 @@ The function *cellStats()* computes summary statistics of a *raster* object.
 
 ```{r }
 cellStats(mintemp, mean)
-cellStats(mintemps, mean)
+cellStats(temps, mean)
 
 summary(mintemp)
 
@@ -300,7 +299,7 @@ We can mask a raster with another raster with the same geometry.  Cells with NA 
 
 ```{r }
 
-rst <- temp[100:135, 50:85, drop = FALSE]
+rst <- mintemp[100:135, 50:85, drop = FALSE]
 
 # Create an empty raster with the same geometry
 my.mask <- raster(rst)
@@ -571,7 +570,7 @@ station_rst1 <- rasterize(stations, target, field = "id", fun = "count")
 station_rst2 <- rasterize(stations, target, field = c("duration","speed"), fun = "sum")
 
 par(mfrow = c(1, 2))
-plot(station_rst, main = "Number of stations")
+plot(station_rst1, main = "Number of stations")
 plot(stations %>% st_geometry(),
      add = TRUE, pch = ".")
 

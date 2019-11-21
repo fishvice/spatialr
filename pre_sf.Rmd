@@ -285,9 +285,10 @@ But this is not what we want.  Rather than just points, we want to join the poin
 ```{r }
 vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv") %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
-  mutate(fishing = if_else(speed>2 & speed <4,TRUE,FALSE))
+  mutate(fishing = if_else(speed>2 & speed <4,1,0))
   
-  group_by(id) %>%
+  group_by
+  (id) %>%
   summarise(do_union = FALSE) %>%
   st_cast("LINESTRING")
 
@@ -303,7 +304,6 @@ ggplot() +
 The *sdm* object contains the latitud and longitude at the start and end of each haul.  Let's make a it a LINESTRING, with straight lines for each haul.
 
 ```{r}
-
 smb <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv")
 
 track <- smb %>% 
