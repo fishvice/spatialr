@@ -285,18 +285,16 @@ But this is not what we want.  Rather than just points, we want to join the poin
 ```{r }
 vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv") %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
-  mutate(fishing = if_else(speed>2 & speed <4,TRUE,FALSE))
-  
-  group_by(id) %>%
+  mutate(fishing = if_else(speed>2 & speed <4,TRUE,FALSE)) %>% 
+  group_by(vid) %>%
   summarise(do_union = FALSE) %>%
   st_cast("LINESTRING")
 
 vms
 
 ggplot() +
-  geom_sf(data=vms, aes(colour=as.factor(id))) +
+  geom_sf(data=vms, aes(colour=as.factor(vid))) +
   theme(legend.position = "none")
-
 ```
 
 #### Tracks with start and end locations
