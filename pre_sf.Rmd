@@ -295,9 +295,8 @@ vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv") %>%
 vms
 
 ggplot() +
-  geom_sf(data=vms, aes(colour=as.factor(id))) +
+  geom_sf(data=vms, aes(colour=as.factor(vid))) +
   theme(legend.position = "none")
-
 ```
 
 #### Tracks with start and end locations
