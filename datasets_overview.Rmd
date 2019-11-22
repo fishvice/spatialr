@@ -553,7 +553,8 @@ st <-
   mutate(tow_id = paste0(reitur, "-", tognumer)) %>% 
   select(id = synis_id, t1 = togbyrjun, t2 = togendir, tow_id) %>% 
   collect(n = Inf)
-utbrteg %>% 
+d <- 
+  utbrteg %>% 
   rename(id = synis.id) %>% 
   left_join(st) %>% 
   mutate(ir = geo::d2ir(lat, lon),
@@ -608,7 +609,8 @@ utbrteg %>%
          plaice_n = skarkoli.stk,
          monkfish_kg = skotuselur.kg,
          monkfish_n = skotuselur.stk,
-         polarcod_n = iskod) %>% 
+         polarcod_n = iskod)
+d %>% 
   write_csv("/net/www/export/home/ftp/pub/data/csv/is_smb.csv")
 ```
 
@@ -637,14 +639,15 @@ track <-
                             ymd_hms("2019-03-19 23:00:00")))) %>% 
   filter(time >= dep,
          time <= arr) %>% 
-  
   arrange(vessel, time) %>% 
   group_by(vessel) %>% 
   mutate(dist = geo::arcdist(lead(lat), lead(lon), lat, lon),   # distance to next point
          time2 = as.numeric(lead(time) - time) / (60 * 60), # duration to next point
          speed2 = dist/time2) %>%                           # speed    on next "leg"
   filter(speed2 <= 20 | is.na(speed2)) %>% 
-  select(vid, vessel, time, lon, lat, speed, heading) %>% 
+  select(vid, vessel, time, lon, lat, speed, heading)
+
+track %>% 
   write_csv("/net/www/export/home/ftp/pub/data/csv/is_smb_vms2019.csv")
 ```
 

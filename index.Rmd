@@ -56,41 +56,37 @@ ___
 
 #### Day 1 - Monday
 
-* 
-* 
+* R, RStudio & housekeeping (EH)
+* Spatial data in R (JB)
+* Introduction to ggplot (EH)
 
 #### Day 2 - Tuesday
 
-* 
-* 
-
+* (dplyr (EH))
+* The sf class (JB)
+* Working with geometries in sf objects (JB)
+* projections??
 
 #### Day 3 - Wednesday
 
-* 
-* 
-* 
+* Spatial operations(JB)
+* More on ggplot (EH)
+* Rasters (JB)
+* raster and ggplot (??)
 
 #### Day 4 - Thursday
 
-* 
-* 
-
+* Interactive maps (EH)
+* Other bits and piecesother (plotly, mapedit, tmap, mapdeck, cartography)
 
 #### Day 5 - Friday
 
-* 
-* 
 
 ### Yet unordered presentations
 
 The stuff below will be assigned to specific dates above
 
 * [Coordinate Reference Systems (CRSs)](crs.html)
-* [Interactive plots](pre_interactive.html)
-
-* [ggplot - introduction](pre_ggplot.html)
-
 
 ### Bits and pieces
 ___
@@ -99,6 +95,10 @@ ___
 
 ### Potential projects
 ___
+
+
+
+### resource list of spatial objects
 
 
 ### References
