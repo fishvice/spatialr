@@ -19,6 +19,8 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 # Getting started
 ___
 
+## Libraries and data
+
 **Needed libraries**:
 ```{r}
 library(tidyverse)   # installs sweeps of packages
@@ -57,10 +59,19 @@ glimpse(minke)
 smb <- 
   read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv",
            stringsAsFactors = FALSE) %>% 
-  as_tibble() %>% 
-  filter(year == 2019)
-smb %>% select(id:cod_n) %>% glimpse()
+  as_tibble()
 ```
+
+In part of the examples used below we will only use one years of the survey data. Hence:
+
+```{r}
+smb2019 <-
+  smb %>% 
+  filter(year == 2019)
+smb2019 %>% select(id:cod_n) %>% glimpse()
+```
+
+Addition data will also be imported further below.
 
 ## Key components of ggplot 
 
@@ -75,28 +86,28 @@ ggplot has __three__ key components:
 
 ```{r}
 ggplot(data = minke) +
-  aes(x = lon, y = lat) + 
+  aes(x = lon, y = lat, colour = sex) + 
   layer(geom = "point", stat = "identity", position = "identity")
 ```
 
 Generally we do not call `r cl("layer")` directly but use functions starting with `r cl("geom_")` that are a shortcut calls to the `r cl("layer") `-function. Hence the above call is normally written as:
 ```{r, eval = FALSE}
-ggplot(data = minke, aes(x = lon, y = lat)) + geom_point()
+ggplot(data = minke, aes(x = lon, y = lat, colour = sex)) + geom_point()
 ```
 
 Different syntax, equivalent outcome:
 
 ```{r, eval = FALSE}
-ggplot()                        + geom_point(data = minke, aes(lon, lat))
-ggplot(data = minke)            + geom_point(aes(x = lon, y = lat))
-ggplot(minke)                   + geom_point(aes(lon, lat))
-ggplot(minke, aes(lon, lat))    + geom_point()
+ggplot()                        + geom_point(data = minke, aes(lon, lat, colour = sex))
+ggplot(data = minke)            + geom_point(aes(x = lon, y = lat, colour = sex))
+ggplot(minke)                   + geom_point(aes(lon, lat, colour = sex))
+ggplot(minke, aes(lon, lat, colour = sex))    + geom_point()
 ```
 
 A ggplot can be stored as an object for later use:
 
 ```{r}
-p <- ggplot(minke) + geom_point(aes(lon, lat))
+p <- ggplot(minke) + geom_point(aes(lon, lat, colour = sex))
 ```
 
 In the above plot, we basically have mapped the longitude position on the x-axis and the latitude position on the y-axis. There are two things missing:
@@ -117,7 +128,10 @@ glimpse(iceland)
 Here we have just a simple dataframe with `r nrow(iceland)` coordinates (long and lat) and some other variables. We can try map these coordinates to different layers (more on `r cl("labs")` later):
 
 ```{r}
-m <- ggplot(iceland, aes(long, lat, group = group)) + labs(x = NULL, y = NULL)
+m <- 
+  ggplot(iceland, aes(long, lat, group = group)) +
+  # Overwrite default: suppress the display of labels
+  labs(x = NULL, y = NULL)
 m1 <- m + geom_point()
 m2 <- m + geom_line()
 m3 <- m + geom_path()
@@ -151,11 +165,11 @@ m4 <- m4 + annotate("text", x = -18, y = 64.8, label = "stereographic")
 m1 + m2 + m3 + m4
 ```
 
-Note that the `r cl("geom_quickmap")` is an approximation (albeit good one for most purposes), if one is operating on a fine scale `r cl("geom_map")` may be more accurate (actually all maps are wrong when put on a two dimensional pane).
+Note that the `r cl("geom_quickmap")` is an approximation (albeit good one for most purposes), if one is operating on a larger scale `r cl("geom_map")` may be more accurate (actually all maps are wrong when put on a two dimensional pane).
 
 ## Adding layers
 
-The power of ggplot comes into place when one adds layers on top of other layers. With the following code one first generates the background-map and then adds the minke datapoints on top of that background map:
+The power of ggplot comes into place when one adds layers on top of other layers. With the following code one first generates the background-map and then adds the minke datapoints on **top** of that background map:
 
 ```{r}
 p <-
@@ -166,7 +180,7 @@ p <-
   geom_point(data = minke, 
              aes(lon, lat, colour = sex)) +
   labs(x = NULL, y = NULL)
-p + coord_map()
+p + coord_quickmap()
 ```
 
 Besides adding a `r cl("point")` layer on **top** of the `r cl("polygon")` layer we have added two aesthetics:
@@ -178,10 +192,10 @@ We will be introduced to more aesthetics as we move along.
 
 ## Zooming in on a plot
 
-We can zoom into a plot by specifying boundaries of the horizontal and vertical axis by calling the arguments xlim and ylim within the `r cl("coord_map")`-function.
+One of ggplot defaults is that the range of the x and the y-axis is dictated by the range in the data. If we want to "zoom into" a plot we can overwrite the default boundaries of the horizontal and vertical axis by calling the arguments xlim and ylim within the `r cl("coord_quickmap")`-function.
 
 ```{r}
-p + coord_map(xlim = c(-25, -20), ylim = c(65, 66.6))
+p + coord_quickmap(xlim = c(-25, -20), ylim = c(65, 66.6))
 ```
 
 ## Exercise
@@ -229,7 +243,7 @@ The `r cl("segment")`-layer is useful when wanting to display some very simple v
 
 ```{r}
 m +
-  geom_segment(data = smb,
+  geom_segment(data = smb2019,
                aes(x    = lon1, y    = lat1,
                    xend = lon2, yend = lat2))
 ```
@@ -241,7 +255,7 @@ We can assign a variable to the size argument in the `r cl("geom_point")`-layer,
 ```{r}
 p <-
   m +
-  geom_point(data = smb,
+  geom_point(data = smb2019,
              aes(lon1, lat1, size = cod_n),
              alpha = 0.2,
              colour = "red")
@@ -274,10 +288,10 @@ ggplot() +
   coord_map() +
   scale_x_continuous(name = NULL, breaks = NULL) +
   scale_y_continuous(name = NULL, breaks = NULL) +
-  geom_segment(data = smb,
+  geom_segment(data = smb2019,
                aes(x    = lon1, y    = lat1,
                    xend = lon2, yend = lat2)) +
-  geom_point(data = smb,
+  geom_point(data = smb2019,
              aes(lon1, lat1, size = cod_n),
              alpha = 0.2,
              colour = "red") +
@@ -311,7 +325,7 @@ However, since there is more than one tow in each tile we need first to generate
 
 ```{r}
 s <-
-  smb %>% 
+  smb2019 %>% 
   group_by(ir_lon, ir_lat) %>% 
   summarise(Cod = mean(cod_n))
 p <-
@@ -343,7 +357,7 @@ Ameliorate the plot above such that is looks like this (you have to start from s
 
 ```{r, echo = FALSE}
 s <-
-  smb %>% 
+  smb2019 %>% 
   group_by(ir_lon, ir_lat) %>% 
   summarise(Cod = mean(cod_n))
 ggplot() +
@@ -385,7 +399,7 @@ So this data is just a set of x (longitude), y (latitudes) and z (depth). The da
 m +
   geom_raster(data = depth,
               aes(x = x, y = y, fill = z)) +
-  coord_quickmap(expand = FALSE) +
+  coord_quickmap() +
   scale_x_continuous(name = NULL, breaks = NULL) +
   scale_y_continuous(name = NULL, breaks = NULL) +
   labs(fill = "Depth [m]")
@@ -426,7 +440,7 @@ and / or
 
 3. Create a code that emulates the following plot
 
-```{r}
+```{r, echo = FALSE}
 ggplot() +
   geom_raster(data = depth,
               aes(x = x, y = y, fill = z)) +
@@ -434,11 +448,11 @@ ggplot() +
                aes(x = x, y = y, z = z),
                breaks = -400,
                colour = "white") +
-  geom_segment(data = smb,
+  geom_segment(data = smb2019,
                aes(x = lon1, y = lat1,
                    xend = lon2, yend = lat1),
                colour = "cyan") +
-  geom_point(data = smb,
+  geom_point(data = smb2019,
              aes(x = lon1, y = lat1, size = cod_age1),
              colour = "red",
              alpha = 0.5) +
@@ -450,3 +464,49 @@ ggplot() +
 
 </div>
 </div>
+
+# Facetting
+
+Facetting allows one to split up the data by a variable and display the same graph for each subset. One can split the data by one varible (wrap) or by two variables (grid).
+
+## facet_wrap
+
+Lets say we want to visualize the survey biomass of a species (here haddock) over time. For simplicity here we will only use selected 6 years:
+
+```{r}
+smb2 <- 
+  smb %>% 
+  filter(year %in% c(1995, 2000, 2005, 2010, 2015, 2019))
+p <-
+  m + 
+  geom_point(data = smb2,
+             aes(lon1, lat1, size = haddock_kg),
+             alpha = 0.15,
+             colour = "red") +
+  scale_size_area(max_size = 15)
+p +
+  facet_wrap(~ year)
+```
+
+## facet_grid
+
+
+```{r}
+# put this on ftp
+d <- 
+  smb %>% 
+  select(id, year, lon1, lat1, cod_age1:cod_age3) %>% 
+  gather(age, n, cod_age1:cod_age3) %>% 
+  mutate(age = str_sub(age, 8) %>% as.integer(),
+         yc = year - age) %>% 
+  filter(yc %in% c(1984, 1985, 1996, 1997))
+
+m + 
+  geom_point(data = d,
+             aes(lon1, lat1, size = n),
+             alpha = 0.2,
+             colour = "red") +
+  scale_size_area(max_size = 10) +
+  facet_grid(age ~ yc)
+```
+
