@@ -69,22 +69,22 @@ ___
 
 #### Day 2 - Tuesday
 
-* (dplyr (EH))
+* [Data transformation] (EH)
 * [The sf class] (JB)
 * [Working with geometries] (JB)
-* projections??
 
 #### Day 3 - Wednesday
 
 * [Spatial operations] (JB)
 * [More on ggplot] (EH)
 * [Rasters] (JB)
-* raster and ggplot (??)
+* [raster and ggplot?] (JB)
 
 #### Day 4 - Thursday
 
-* [Interactive maps] (EH)
+* [Interactive maps - leaflet] (EH)
 * Other bits and pieces (plotly, mapedit, tmap, mapdeck, cartography)
+* [Reproducable research in R?] (EH) 
 
 #### Day 5 - Friday
 
