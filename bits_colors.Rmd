@@ -59,6 +59,10 @@ knitr::include_graphics("./img/colorspace2.png")
 
 **colorspace** has an interactive GUI that can be used to select a palette.
 
+```{r out.width = "50%", echo= FALSE}
+knitr::include_graphics("./img/colorspace.png")
+```
+
 ```{r }
 library(colorspace)
 pal <- choose_palette()
