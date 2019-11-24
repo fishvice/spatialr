@@ -498,7 +498,7 @@ long %>%
 
 ## pivot_wider
 
-When reconstructing untidy tables we sometimes may need to make a wider table again. In the above example we only made a wide table for abundance (n). We could modify the above code for the biomass (kg). Doing all in one step requires the use of `r cl("pivot_wider")`, the steps being:
+When reconstructing untidy tables we sometimes may need to make a long table wider again. In the above example we only made a long table for abundance (n). We could modify the above code for the biomass (kg). Doing all in one step requires the use of `r cl("pivot_wider")`, the steps being:
 
 1. Make a table containing id, current variable (cod_n, cod_kg, ...) and the corresponding value (abundance or biomass)
 2. Separate the value measured (kg or n) from the species name
@@ -519,6 +519,7 @@ long <-
 ___
 
 Normally the data we are interested in working with do **not** reside in one table. E.g. for a typical groundfish survey data one stores the station table separate from the biological table. Lets read in the SMB tables in such a format:
+
 ```{r}
 station <- 
   read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_stations.csv")
@@ -545,6 +546,10 @@ station %>%
   left_join(biological)
 ```
 
+Take note here:
+* The joining is by common variable name in the two tables (here id)
+* That we only have records of fours species in this table, i.e. a value of zero for a species is not stored in the data.
+
 ## **right_join**: Matching values from x to y
 
 ```{r echo = FALSE}
@@ -562,10 +567,9 @@ knitr::include_graphics("img/inner_join.png")
 Example of only joining station information with monkfish, were monkfish was recorded:
 
 ```{r}
-biological %>% 
-  filter(species == "monkfish",
-         kg > 0) %>% 
-  left_join(station)
+station %>% 
+  inner_join(biological %>% 
+               filter(species == "monkfish"))
 ```
 
 ## **full_join**: Retain all rows
@@ -573,6 +577,15 @@ biological %>%
 ```{r echo = FALSE}
 knitr::include_graphics("img/full_join.png")
 ```
+
+```{r}
+station %>% 
+  full_join(biological %>% 
+               filter(species == "monkfish")) %>% 
+  select(id, species:n)
+```
+
+Here all the stations records are retained irrepsective if monkfish was caught or not.
 
 <div class="panel panel-warning">
 <div class="panel-heading">Exercise 1</div>

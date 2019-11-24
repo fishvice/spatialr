@@ -1,6 +1,6 @@
 # copy content to webpage
 library(rmarkdown)
-fil <- dir(".", pattern = "*.Rmd")
+fil <- c(dir(".", pattern = "*.Rmd"), dir(".", pattern = "*.rmd"))
 fil <- fil[grep("pre_*", fil)]
 for(i in 1:length(fil)) {
   print(fil[i])

@@ -529,10 +529,12 @@ ggplot() +
                    xend = lon2, yend = lat1),
                colour = "cyan") +
   geom_point(data = smb2019,
-             aes(x = lon1, y = lat1, size = cod_age1),
+             aes(x = lon1, y = lat1, size = wolffish_kg),
              colour = "red",
              alpha = 0.5) +
   scale_size_area(max_size = 10) +
+  # do not show legend for the depth raster
+  scale_fill_continuous(guide=FALSE) +
   scale_x_continuous(name = NULL, breaks = NULL) +
   scale_y_continuous(name = NULL, breaks = NULL) +
   coord_quickmap()

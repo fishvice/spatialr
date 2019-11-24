@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 You are here: [https://heima.hafro.is/~einarhj/spatialr](https://heima.hafro.is/~einarhj/spatialr)
 
+The course announcement is [here](http://www.ices.dk/news-and-events/Training/Pages/R.aspx)
+
 ### Time and location
 ___
 
@@ -36,7 +38,7 @@ leaflet() %>%
 ### Preamble
 ___
 
-During the course we will allocate some time for each participant to work on a personal data, doing some manipulation and producing maps.  Please bring any spatial data that you are intersted working with. 
+During the course we will allocate some time for each participant to work on a personal data, doing some manipulation and producing maps.  Please bring any spatial data that you are interested working with. 
 
 **Prior to the course** please install:
 
@@ -57,43 +59,51 @@ ___
 
 (Definitively a) Preliminary schedule:
 
-* Daily schedule (within the time contraint above): 09:00 - 17:30
-* Lunch: 13:00 - 14:00
-* Coffee: 11:00 - 11:20, 15:30 - 15:45
+* Lectures (within the time constraint above): 09:00 - 17:00
+* Own work, we will be around: 17:00 - 18:00
+* Lunch (definite): 13:00 - 14:00
+* Coffee (plan): 11:00 - 11:20, 15:30 - 15:45
 
-#### Day 1 - Monday
+#### Day 1 - Monday (10:00 - 17:00)
 
-* R, RStudio & housekeeping (EH)
-* Spatial data in R (JB)
-* [Introduction to ggplot] (EH)
+* [R & RStudio](pre_intro.html) (EH)
+* [Spatial data in R](pre_spatial_data.html) (JB)
+* [Introduction to ggplot](pre_ggplot1.html) (EH)
 
-#### Day 2 - Tuesday
+#### Day 2 - Tuesday (09:00 - 17:00)
 
-* [Data transformation] (EH)
-* [The sf class] (JB)
-* [Working with geometries] (JB)
+* [Data transformation](pre_transformation.html) (EH)
+* [The sf class](pre_sf.html) (JB)
+* [Working with geometries](pre_geometric.html) (JB)
+* [Coordinate Reference Systems](pre_crs.html) (JB)
 
-#### Day 3 - Wednesday
+#### Day 3 - Wednesday (09:00 - 17:00)
 
-* [Spatial operations] (JB)
-* [More on ggplot] (EH)
-* [Rasters] (JB)
-* [raster and ggplot?] (JB)
+* [Spatial operations](spatial_ops.html) (JB)
+* [More on ggplot](ggplot2.html) (EH)
+* [Rasters](rasters.html) (JB)
+* raster and ggplot (??)
 
-#### Day 4 - Thursday
+#### Day 4 - Thursday (09:00 - 17:00)
 
-* [Interactive maps - leaflet] (EH)
+* [Interpolation](interpolation.html) (JB)
+* [Interactive maps - leaflet](interactive.html) (EH)
 * Other bits and pieces (plotly, mapedit, tmap, mapdeck, cartography)
-* [Reproducable research in R?] (EH) 
+* [Reproducible document writing in R?](markdown.html) (EH) 
 
 #### Day 5 - Friday
+
+* Recap
+* Own work - presentations
+* Course evaluation
+
+
 
 
 ### Yet unordered presentations
 
 The stuff below will be assigned to specific dates above
 
-* [Coordinate Reference Systems (CRSs)]
 
 ### Bits and pieces
 ___
