@@ -1,20 +1,22 @@
 ---
-title: "Spatial data in R"
+title: "Introduction to Spatial Data"
 output:
   html_document:
     fig_height: 4
-    fig_width: 8
+    fig_width: 9
     highlight: haddock
-    theme: cerulean
+    theme: united
     toc: yes
     toc_float: yes
+    toc_depth: 2
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
+
 # What is spatial data?
-- In simple terms, spatial data refers to data about geographical locations (e.g. latitude and longitude).
+- In simple terms, spatial data refers to data associated to specific geographical locations (e.g. latitude and longitude).
 - More specifically, is the data where the associated locations *matter* for the purposes of what we want to do.
 - Very often we distinguish between the geographic locations themselves (the "geometry" or "shape") and the data associated to that geometry ("attributes").
 
@@ -78,7 +80,7 @@ These two types take us to two distinct data models:
 ![](./img/example_lines.png){width=25%}
 </center>
 
-- Networks are a special class of line geometry where information is stored about the links between the nodes, for example direction or traffic.  We will not deal with these.
+- Networks are a special class of line geometry where information is stored about the links between the nodes, for example flow direction or volume.  We will not deal with these on this course.
 
 
 ### Polygons
@@ -95,8 +97,7 @@ These two types take us to two distinct data models:
 
 Raster data is used to represent parameters that vary continuously in space.
 
-A raster represents some area as a regular grid of equally sized rectangles, known as cells or pixels.
-Each cell can hold one or more data values (i.e. single-layer and multi-layer rasters).  Data can be continuous (e.g. depth, temperature) or discrete/categorical (e.g. land types)
+In the most common case, a raster represents some area as a regular grid of equally sized rectangles, known as cells or pixels (cell widths in the x and y direction can be different).  Each cell can hold one or more data values (i.e. single-layer and multi-layer rasters).  Data can be continuous (e.g. depth, temperature) or discrete/categorical (e.g. land types)
 
 <center>
 ![](./img/raster1.png){width=50%}
@@ -111,19 +112,23 @@ Each cell has an individual ID.  The raster does not stores the coordinates (cor
 </center>
 
 
+Although here we will focus on rasters as regular grids, the raster model is more flexible.  We can have rasters with rotated, sheared, irregular and curvilinear grids.
+
 Continuous data can be stored in other ways, for example in triangulated irregular networks (TINs).  We will not deal with these in this course.
 
 
 # The ecosystem of packages for spatial data in R.
 As we know, the capabilities of R are extended through the use of *packages*.  In R there are two main groups of ecosystems of packages to deal with spatial data:
 
-## The old ecosystem
+## The "old"" ecosystem
 
-In the old days (early 2000's) several R had several packages for the analysis of spatial data, including *akima* for interpolation, and *spatstat* for point pattern analysis.  These packages did not have a uniform way to represent spatial data in R.  For example the **geoR** package defined the class *geodata*, which is a list with objects named *coords* and *data*, while the **gstat** package defined the class *gstat*, a list with objects named *data*, *model* and *set*.  Things were messy.
+In the old days (early 2000's) several R had several packages for the analysis of spatial data, including *akima* for interpolation, and *spatstat* for point pattern analysis.  R did not have a way to tell coordinates from other numbers, and these packages did not have a uniform way to represent spatial data.
+
+For example the **geoR** package defined the class *geodata*, which is a list with objects named *coords* and *data*, while the **gstat** package defined the class *gstat*, a list with objects named *data*, *model* and *set*.  Things were messy.
 
 In 2005, the **sp** package was created to unify the treatment of spatial data in R and to
 
-  - provide classes for vector spatial data: **SpatialPoint**, **SpatialLine**, **SpatialPolygon**, etc.
+  - provide classes for vector spatial data: **SpatialPoint**, **SpatialLine**, **SpatialPolygon**, etc. (with or without attribute data)
   - provide (limited) support for raster data: **SpatialPixel**, **SpatialGrid**
   - share methods (e.g. *plot*, *summary*)
   - provide conversions to other representations (one-to-many, many-to-one).
@@ -133,6 +138,20 @@ In addition to **sp**, the package **rgdal** (released in 2003) was used to read
 In parallel, the package **raster** was released in 2010 to provide better support for raster data.
 
 The **sp/rgdal/rgeos/raster** ecosystem made R a powerful tool for spatial analysis.  Today more than 500 R packages rely on **sp**.
+
+
+# The need for a new framework
+
+- When **sp** was written there was no standard for simple features.  Shapefiles was the dominant format for exchanging vector data, but there was no standard, which brought all kinds of problems.
+
+- The *simple feature access* standard is now widely accepted, but **sp** has to do conversions to load it.
+
+- The external libraries used by R to read/write spatial data (GDAL) and for geometrical operations (GEOS) have developed a strong support for the simple feature standard.
+
+- The **tidyverse** cluster of packages (which includes **dplyr** and **ggplot2**) does not work well with spatial classes of **sp**.
+  - The **tidyverse** requires that objects are dataframes.  **sp** objects are not.
+  - Converting **sp** objects into dataframes (for example by using *fortify*) is nor robust or efficient.
+
 
 # The new framework: the sf package
 
@@ -144,6 +163,17 @@ It also has functions to read/write data, and to do operations on vector data.  
 
 The **sf** package has a more modern data structure (more on this later), and also works well with packages of the "tidyverse".
 
-The very new **stars** package (released in 2018) provides datacubes and rasters.
 
-The package **terra** is being developed as a replacement of **raster**
+<center>
+![](./img/dependency.png){width=100%}
+</center>
+
+# More developments.
+
+The very new **stars** package (released in 2018) provides datacubes. Datacubes are dense arrays used to store spatio-temporal data.  Space (2D or 3D) and time are the array dimensions.  **stars** is not a direct replacement for **rasters**, but it provides much of its functionality.
+
+https://r-spatial.github.io/stars/
+
+
+In early development, the package **terra** is intended to be a replacement of **raster**
+https://github.com/rspatial/terra

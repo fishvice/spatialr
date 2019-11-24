@@ -74,7 +74,7 @@ ___
 * [Data transformation](pre_transformation.html) (EH)
 * [The sf class](pre_sf.html) (JB)
 * [Working with geometries](pre_geometric.html) (JB)
-* projections??
+* [Coordinate Reference Systems](pre_crs.rmd) (JB)
 
 #### Day 3 - Wednesday
 
@@ -96,7 +96,6 @@ ___
 
 The stuff below will be assigned to specific dates above
 
-* [Coordinate Reference Systems (CRSs)](crs.html)
 
 ### Bits and pieces
 ___
