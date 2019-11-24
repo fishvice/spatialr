@@ -33,7 +33,7 @@ tree  /net/www/export/home/ftp/pub/data
 # Data
 ___
 
-```{r setup}
+```{r setup, echo = FALSE}
 library(mapdeck)
 library(sf)
 library(rmapshaper)
@@ -74,13 +74,7 @@ minke <-
 
 ## Icelandic bottom trawl spring survey (SMB)
 
-TODO: 
-
-* select only certain variables
-* anglosize
-* check using t1 and t2
-
-The smb dataset contains 19846 tows from the annual Icelandic bottom trawl spring survey from years 1985 to 2019. It is in a long format, each row representing a single tow. The variables are as follows:
+The smb dataset contains 19846 tows from the annual Icelandic bottom trawl spring survey from years 1985 to 2019. It is in a **long format**, each row representing a single tow. The variables are as follows:
 
 * **id**: Unique station identification code
 * **date**: The date
@@ -113,8 +107,7 @@ The smb dataset contains 19846 tows from the annual Icelandic bottom trawl sprin
 **Importing the data into R**:
 
 ```{r}
-d <- read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv",
-              stringsAsFactors = FALSE)
+d <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv")
 ```
 
 ## SMB 2019 vessel tracks
@@ -132,81 +125,7 @@ The dataset are 8918 ais/vms records of four vessels that participated in the Ic
 **Importing the data into R**:
 ```{r}
 d <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv",
-           stringsAsFactors = FALSE)
-```
-
-## IESSNS 2019 survey
-
-### trail
-
-Dataset contains VMS tracks of 5 vessels that participated in IESSNS 2019 survey (often named the Pelagic Mackerel Survey). The variables are:
-
-* **vessel**: The vessel name
-* **time**: Time in UTC
-* **lon**: Longitude in decimal degrees
-* **lat**: Latitude in decimal degrees
-* **speed**: Vessel speed in knots
-* **heading**: Vessel heading in dregrees
-
-```{r, eval = FALSE}
-trail <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_trail.csv",
-           stringsAsFactors = FALSE)
-```
-
-### tows
-
-Dataset contains pre-determined pelagic trawl stations. The variables are:
-
-* **activity**: Some information on the type of tow
-* **lon**: Degrees longitude
-* **lat**: Degrees latitute
-
-```{r, eval = FALSE}
-tows <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_tows.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-tows %>% glimpse()
-```
-
-### strata
-
-Dataset contains the survey stratas (used when calculating the stratified abundance/biomass indices). The variables are:
-
-* **lon**: Degrees longitude
-* **lat**: Degrees latitute
-* **strata**: Numerical indicating strata number
-
-```{r, eval = FALSE}
-strata <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_strata.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-strata %>% glimpse()
-```
-
-## DATRAS data
-
-
-```{r, eval = FALSE}
-hh <- 
-  read_rds("/net/hafkaldi/export/home/haf/einarhj/prj2/bookdown/datrasdoodle/data/datras/hh_datras.rds") %>% 
-  filter(year == 2018)
-write_csv(hh, "/net/www/export/home/ftp/pub/data/csv/datras_2018_haul.csv")
-hl <- 
-  hh %>% 
-  select(id) %>% 
-  left_join(read_rds("/net/hafkaldi/export/home/haf/einarhj/prj2/bookdown/datrasdoodle/data/datras/hl_datras.rds"))
-write_csv(hl, "/net/www/export/home/ftp/pub/data/csv/datras_2018_length.csv")
-```
-
-```{r}
-hh <- read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_haul.csv",
-               stringsAsFactors = FALSE)
-hl <- read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_length.csv",
-               stringsAsFactors = FALSE)
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv")
 ```
 
 
@@ -459,83 +378,6 @@ p %>%
   write_sf("/net/www/export/home/ftp/pub/data/shapes/ices_subrectangles.gpkg")
 ```
 
-#### NEAFC vme
-
-Not really what was expected
-
-```{r, eval = FALSE}
-# bit of a mess
-url <- "https://www.neafc.org/system/files/mid-atlantic-vme-closures.zip"
-p1 <- read_zipped_shapes(url)
-url <- "https://www.neafc.org/system/files/hr_shape_files_2018.zip"
-p2 <- read_zipped_shapes(url)
-library(mapdeck)
-key <- "pk.eyJ1IjoiZmlzaHZpY2UiLCJhIjoiY2p0MXQ5dThpMDZqeDQ5bHM0MGx4dHI5cyJ9.Fed_z7mv_TgTWDRjiavU3A"
-p1 %>% mapdeck(token = key) %>% add_sf(tooltip = "name")
-p2 %>% mapdeck(token = key) %>% add_sf(tooltip = "name")
-p %>% write_sf("/net/www/export/home/ftp/pub/data/shapes/helcom.gpkg")
-```
-
-
-
-# Not there yet
-
-### Datras data
-
-Download available 2019 DATRAS data:
-```{r, eval = FALSE}
-
-
-```
-
-```{r, eval = FALSE}
-library(icesDatras)
-library(tidyices)
-yrs <- 2000:2019
-qts <- c(1, 3)
-hh <- 
-  getDATRAS(record = "HH", survey = "NS-IBTS", years = yrs, quarters = qts) %>% 
-  dtrs_tidy_hh()
-species <- read_csv("ftp://ftp.hafro.is/pub/reiknid/einar/datras_worms.csv")
-hl <- 
-  getDATRAS(record = "HL", survey = "NS-IBTS", years = yrs, quarters = qts) %>% 
-  dtrs_tidy_hl(hh, species)
-write_csv(hh, "/net/www/export/home/ftp/pub/reiknid/einar/data/datras/nsibts_hh.csv", na = "")  
-write_csv(hl, "/net/www/export/home/ftp/pub/reiknid/einar/data/datras/nsibts_hl.csv", na = "")  
-```
-
-```{r, echo = FALSE}
-hh <- read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_haul.csv",
-               stringsAsFactors = FALSE)
-hl <- read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_length.csv",
-               stringsAsFactors = FALSE)
-d <- 
-  hh %>% 
-  select(id, lon = shootlong, lat = shootlat) %>% 
-  full_join(hl %>% 
-              filter(latin == "Pleuronectes platessa") %>% 
-              group_by(id) %>% 
-              summarise(n = sum(n) / 1e3)) %>% 
-  mutate(n = ifelse(is.na(n), 0, n),
-         n = ifelse(n > 10, 10, n)) %>% 
-  drop_na() %>% 
-  arrange(-n) %>% 
-  mutate(r = n * 1e4)
-mapdeck(toke = key) %>% 
-  add_scatterplot(data = d %>% filter(n == 0),
-                  lon = "lon",
-                  lat = "lat",
-                  radius = 5000,
-                  fill_colour = adjustcolor("blue", alpha.f = 0.3),
-                  layer_id = "zero") %>% 
-  add_scatterplot(data = d %>% filter(n > 0),
-                  lon = "lon",
-                  lat = "lat",
-                  tooltip = "n",
-                  radius = "r",
-                  fill_colour = adjustcolor("red", alpha.f = 0.3),
-                  layer_id = "plus")
-```
 
 ## Appendix - data generation
 
@@ -553,15 +395,16 @@ st <-
   mutate(tow_id = paste0(reitur, "-", tognumer)) %>% 
   select(id = synis_id, t1 = togbyrjun, t2 = togendir, tow_id) %>% 
   collect(n = Inf)
-d <- 
+smb <- 
   utbrteg %>% 
   rename(id = synis.id) %>% 
   left_join(st) %>% 
   mutate(ir = geo::d2ir(lat, lon),
          ir_lon = geo::ir2d(ir)$lon,
-         ir_lat = geo::ir2d(ir)$lat) %>% 
+         ir_lat = geo::ir2d(ir)$lat,
+         date = lubridate::ymd(paste0(ar, "-", man, "-", dags))) %>% 
   select(id,
-         date = dags,
+         date,
          year = ar,
          vid = skip,
          tow_id,
@@ -576,8 +419,8 @@ d <-
          ir_lat,
          z1 = dypi.kastad,
          z2 = dypi.hift,
-         tmp1 = yfirbordshiti,
-         tmp2 = botnhiti,
+         temp_s = yfirbordshiti,
+         temp_b = botnhiti,
          speed = toghradi,
          duration = togtimi,
          towlength = toglengd,
@@ -598,19 +441,9 @@ d <-
          wolffish_n = steinbitur.stk,
          plaice_kg = skarkoli.kg,
          plaice_n = skarkoli.stk,
-         cod_age1 = torskur.1.stk,
-         cod_age2 = torskur.2.stk,
-         cod_age3 = torskur.3.stk,
-         cod_gt60cm_kg = torskur.gt.60.kg,
-         cod_gt80cm_kg = torskur.gt.80.kg,
-         haddock_age1 = ysa.1.stk,
-         haddock_age2 = ysa.2.stk,
-         haddock_age3 = ysa.3.stk,
-         plaice_n = skarkoli.stk,
          monkfish_kg = skotuselur.kg,
-         monkfish_n = skotuselur.stk,
-         polarcod_n = iskod)
-d %>% 
+         monkfish_n = skotuselur.stk)
+smb %>% 
   write_csv("/net/www/export/home/ftp/pub/data/csv/is_smb.csv")
 ```
 
@@ -651,4 +484,20 @@ track %>%
   write_csv("/net/www/export/home/ftp/pub/data/csv/is_smb_vms2019.csv")
 ```
 
+Split smb into 2 tidy tables:
+```{r, eval = FALSE}
+smb %>% 
+  select(id:newstrata) %>% 
+  write_csv("/net/www/export/home/ftp/pub/data/csv/is_smb_stations.csv")
+smb %>% 
+  select(id, cod_kg:monkfish_n) %>% 
+    # step 1
+  pivot_longer(-id) %>%
+  # step 2
+  separate(name, sep = "_", into = c("species", "variable")) %>% 
+  # step 3
+  pivot_wider(names_from = variable) %>% 
+  filter(n > 0) %>% 
+  write_csv("/net/www/export/home/ftp/pub/data/csv/is_smb_biological.csv")
+```
 

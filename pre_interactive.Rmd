@@ -419,7 +419,7 @@ egos <-
 leaflet(egos) %>%
   addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
               opacity = 1.0, fillOpacity = 0.5,
-              fillColor = ~colorQuantile("YlOrRd", shape_area)(shape_area),
+              fillColor = ~colorQuantile("YlOrRd", area_km2)(area_km2),
               highlightOptions = highlightOptions(color = "white", weight = 2,
                                                   bringToFront = TRUE))
 ```
@@ -428,7 +428,7 @@ leaflet(egos) %>%
 ```{r eval = FALSE, echo = FALSE}
 # some trials on colours
 leaflet(egos) %>%
-  addPolygons(color = ~colorQuantile("YlOrRd", shape_area)(shape_area),
+  addPolygons(color = ~colorQuantile("YlOrRd", area_km2)(area_km2),
               #color = "#444444", 
               weight = 1, 
               smoothFactor = 0.5,
@@ -460,8 +460,8 @@ m %>%
             opacity = 1)
 
 
-
-col <- colour_values(egos$shape_area)
+library(colourvalues)
+col <- colour_values(egos$area_km2)
 
 leaflet(egos) %>%
   addPolygons(fillColor = col,
@@ -475,14 +475,14 @@ leaflet(egos) %>%
               highlightOptions = highlightOptions(color = "white",
                                                   weight = 2,
                                                   bringToFront = TRUE)) %>% 
-  addLegend("bottomright", fillColor = col, labels = ~egos$shape_area,
+  addLegend("bottomright", color = ~col, labels = ~egos$area_km2,
             title = "Egos",
             opacity = 1)
 
-library(colourvalues)
+
 ?colour_values
 
-pal <- colorQuantile("YlOrRd", egos$shape_area)
+pal <- colorQuantile("YlOrRd", egos$area_km2)
 
 
 

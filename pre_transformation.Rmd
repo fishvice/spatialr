@@ -20,6 +20,20 @@ knitr::opts_chunk$set(warning = FALSE,
 #knitr::opts_chunk$set(out.width = '750px', dpi = 200)
 ```
 
+```{r, echo = FALSE}
+cl = function(x, color = "blue"){
+  outputFormat = knitr::opts_knit$get("rmarkdown.pandoc.to")
+  if(outputFormat == 'latex')
+    paste("\\textcolor{",color,"}{", x ,"}",sep="")
+  else if(outputFormat == 'html')
+    paste("<font color='",color,"'>", x ,"</font>",sep="")
+  else
+    x
+}
+```
+
+
+
 ```{r, width = 150, echo = FALSE, eval = FALSE}
 include_graphics("img/data_science.png")
 ```
@@ -72,16 +86,17 @@ The structure of these commands is always the same:
 * [Data Transformation Cheat Sheet](https://github.com/rstudio/cheatsheets/raw/master/data-transformation.pdf)
 
 
-#### Getting example data into R
+
+
+# Manipulate Cases
+___
+
+** Import data used**:
 ```{r}
 library(tidyverse)
 d <- 
   read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv")
-glimpse(d)
 ```
-
-# Manipulate Cases
-___
 
 ## **filter**: Extract rows
 
@@ -90,7 +105,7 @@ ___
 include_graphics("img/filter.png")
 ```
 
-One can extract rows that meet logical criteria by using the `filter` command. The first argument is the name of the data frame with subsequent argument(s) being logical expressions. E.g. one subsets the minke data containing only year 2004 by:
+One can extract rows that meet logical criteria by using the `r cl("filter")` command. The first argument is the name of the data frame with subsequent argument(s) being logical expressions. E.g. one subsets the minke data containing only year 2004 by:
 
 ```{r}
 filter(d, year == 2004)
@@ -163,13 +178,13 @@ filter(d, maturity == "mature" | sex == "Male" | year == 2007)
 <div class="panel-body">
 
 * Find all males caught in the northern area in 2006 and 2007
-* Find all females that are either immature or pregnant
+* Find all males that are either immature or pregnant
 * Find all whales caught that did not have a maturity status determined
 * Find all whales that were caught in year 2007 or were mature males
 
 ```{r, echo = FALSE, eval = FALSE}
 filter(d, sex == "Male", area == "North")
-filter(d, sex == "Female" & maturity %in% c("immature", "pregnant")) 
+filter(d, sex == "Male" & maturity %in% c("immature", "pregnant")) 
 filter(d, is.na(maturity))
 filter(d, year == 2007 | (maturity == "mature" & sex == "Male"))
 ```
@@ -183,7 +198,7 @@ filter(d, year == 2007 | (maturity == "mature" & sex == "Male"))
 include_graphics("img/select.png")
 ```
 
-The `select` functions allows you to extract certain columns:
+The `r cl("select")` functions allows you to extract certain columns:
 ```{r}
 select(d, id, year, maturity)
 ```
@@ -198,7 +213,7 @@ A combination of negative indexes could be written as:
 select(d, -c(weight, maturity))
 ```
 
-The `select` function can use a couple of fairly useful helper function:
+The `r cl("select")` function has some useful helper function:
 
 ```{r, eval=FALSE}
 starts_with('stomach')  # Finds all columns that start with "stomach"
@@ -213,7 +228,7 @@ And you can of course combine these at will:
 select(d, id:length, starts_with('stomach'))
 ```
 
-`select` also allows you to rename columns as you select them:
+`r cl("select")` also allows you to rename columns as you select them:
 ```{r}
 select(d, id, yr = year)
 ```
@@ -227,7 +242,7 @@ include_graphics("img/rename.png")
 ```
 
 
-If you just want to rename a couple of columns in the data frame leaving the other columns intact you can use the function `rename`:
+If you just want to rename a couple of columns in the data frame leaving the other columns intact you can use the function `r cl("rename")`:
 
 ```{r}
 rename(d, yr = year)
@@ -250,7 +265,9 @@ rename(d, yr = year)
 include_graphics("img/arrange.png")
 ```
 
-Arrange by length (in ascending order):
+
+To sort the data we employ the `r cl("arrange")`-function. Sorting by length is as follows (in ascending order):
+
 ```{r}
 arrange(d, length)
 ```
@@ -271,7 +288,8 @@ arrange(d, sex, desc(length))
 include_graphics("img/mutate.png")
 ```
 
-Mutate allows you to add new columns to your data. Let's calculate the approximate weight
+`r cl("mutate")` allows you to add new columns to your data. Let's calculate the approximate weight:
+
 ```{r}
 d2 <- select(d, id, length, weight)
 mutate(d2, computed_weight = 0.00001 * length^3)
@@ -284,7 +302,7 @@ mutate(d2,
        approx_weight = ifelse(is.na(weight), 0.00001 * length^3, weight))
 ```
 
-To make our lives a bit easier mutate "remembers" earlier transformations within the mutate sequence:
+To make our lives a bit easier `r cl("mutate")` "remembers" earlier transformations within the sequence:
 
 ```{r, eval = FALSE}
 mutate(d2,
@@ -309,7 +327,8 @@ mutate(d2,
 include_graphics("img/summarise.png")
 ```
 
-Used to create summaries of the data:
+To summarise data one uses the  `r cl("summarise")`-function. Below we calculate the number of observations (using the `cl("n")`-function and the mean minke length.
+
 ```{r}
 summarise(d,
           n.obs = n(),
@@ -322,7 +341,7 @@ summarise(d,
 include_graphics("img/group_by.png")
 ```
 
-The power of the command `summarise` is revealed when used in conjunction with `group_by`. The latter functions splits the data into groups based on one or multiple variables. E.g. one can split the minke table by maturity:
+The power of the command `r cl("summarise")` is revealed when used in conjunction with `r cl("group_by")`-function. The latter functions splits the data into groups based on one or multiple variables. E.g. one can split the minke table by maturity:
 
 ```{r}
 by_maturity <- 
@@ -332,7 +351,7 @@ by_maturity
 
 The table appears "intact" because it still has 190 observations but it has 6 groups, representing the different values of the maturity scaling in the data (anoestrous, immature, mature, pregnant, pubertal and "NA").
 
-The `summarise`-command respects the grouping, as shown if one uses the same command as used above, but now on a dataframe that has been grouped:
+The `r cl("summarise")`-command respects the grouping, as shown if one uses the same command as used above, but now on a dataframe that has been grouped:
 ```{r}
 summarise(by_maturity,
           n.obs = n(),
@@ -365,7 +384,7 @@ arrange(summarise(group_by(d, sex, year), obs = n()), desc(obs))
 
 ## The `%>%` operator
 
-dplyr allows chaining of operators using the `%>%` operator - often referred to as the pipe operator.
+dplyr allows chaining of operators using the `%>%` operator - often referred to as the pipe operator. The above code then becomes:
 
 ```{r}
 d %>% 
@@ -416,26 +435,100 @@ read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv") %>%
 </div>
 </div>
 
+# Tidy dataframes
+
+The defintion of a tidy dataset: Each column is a variable, and each row is an observation. The SMB dataset (ftp://ftp.hafro.is/pub/data/csv/is_smb.csv) is an example of an untidy dataset. Lets take a look:
+
+```{r}
+smb <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv")
+glimpse(smb)
+```
+
+**Can you identify columns that should actually be a observations**?
+
+## pivot_longer
+
+To make a table longer, we can employ the `r cl("pivot_longer")`-function. Lets just take the biological variables:
+
+```{r}
+wide <- 
+  smb %>% 
+  select(id, cod_kg:monkfish_n)
+long <- 
+  wide %>% 
+  # select just the abundance variables
+  select(id, ends_with("_n")) %>% 
+  pivot_longer(cols = -id, names_to = "species", values_to = "n") %>% 
+  mutate(species = str_remove(species, "_n"))
+glimpse(long)
+```
+
+So we have moved from a dataframe that was 19846 rows with 7 variables to a dataframe of 119076 (19846 stations x 6 species) rows with only 3 variables:
+
+* **id**: Station id
+* **species**: Species name
+* **n**: Abundance (standardized to 4 nautical miles)
+
+This latter (longer) format is the proper format for efficient computer programming. The following exercise should illustrate that.
+
+<div class="panel panel-warning">
+<div class="panel-heading">Exercise</div>
+<div class="panel-body">
+
+
+1. Use the wide-dataframe above and write a code to calculate the median abundance (***_n column) for each species
+2. Use the long-dataframe above and write a code to calculate the median abundance for each species
+
+```{r, echo = FALSE}
+wide %>% 
+  summarise(cod = median(cod_n),
+            haddock = median(haddock_n),
+            saithe = median(saithe_n),
+            wolfish = median(wolffish_n),
+            plaice = median(plaice_n),
+            monkfish = median(monkfish_n))
+long %>% 
+  group_by(species) %>% 
+  summarise(median = median(n))
+```
+
+</div>
+</div>
+
+## pivot_wider
+
+When reconstructing untidy tables we sometimes may need to make a wider table again. In the above example we only made a wide table for abundance (n). We could modify the above code for the biomass (kg). Doing all in one step requires the use of `r cl("pivot_wider")`, the steps being:
+
+1. Make a table containing id, current variable (cod_n, cod_kg, ...) and the corresponding value (abundance or biomass)
+2. Separate the value measured (kg or n) from the species name
+3. Generate separate columns for abundance (n) and biomass (kg)
+
+```{r}
+long <-
+  wide %>% 
+  # step 1
+  pivot_longer(-id) %>%
+  # step 2
+  separate(name, sep = "_", into = c("species", "variable")) %>% 
+  # step 3
+  pivot_wider(names_from = variable)
+```
 
 # Combine variables (join)
 ___
 
-Normally the data we are interested in working with do not consists in one table only. Take e.g. a typical groundfish survey:
-
+Normally the data we are interested in working with do **not** reside in one table. E.g. for a typical groundfish survey data one stores the station table separate from the biological table. Lets read in the SMB tables in such a format:
 ```{r}
 station <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_stations.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_stations.csv")
 biological <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_biological.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_biological.csv")
 station %>% select(id:lat1) %>%  arrange(id) %>% glimpse()
 biological %>% arrange(id) %>% glimpse() 
 ```
 
-Here the information on the station, such as date, geographical location are kept separate from the detail measurments that are performed at each station (weight and numbers by species. The records in the station table are unique (i.e. each station information only appear once) while we can have more than one species measured at each station. The link between the two tables, in this case, is the variable id.
+Here the information on the station, such as date, geographical location are kept separate from the detail measurments that are performed at each station (weight and numbers by species. The records in the station table are unique (i.e. each station information only appear once) while we can have more than one species measured at each station. Take note here that the biological table does not contain records of species that were not observed at that station. The link between the two tables, in this case, is the variable id.
 
 ## **left_join**: Matching values from y to x
 
