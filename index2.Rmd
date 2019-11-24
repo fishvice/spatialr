@@ -84,7 +84,7 @@ ___
 * raster and ggplot (??)
 
 #### Day 4 - Thursday
-
+* [Interpolation](pre_interpolation.html) (JB)
 * [Interactive maps - leaflet](pre_interactive.html) (EH)
 * Other bits and pieces (plotly, mapedit, tmap, mapdeck, cartography)
 * [Reproducible research in R?](pre_markdown.html) (EH) 
