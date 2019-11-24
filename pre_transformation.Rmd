@@ -60,7 +60,7 @@ Essentially dplyr offer a collection of simple but powerful commands (or verbs) 
 
 The structure of these commands is always the same:
 
-* First argument to the function is a data frame
+* **First argument to the function is a data frame**
 * Subsequent arguments say what to do with data frame
 * Always return a data frame
     * this is the **key** difference of the tidyverse vs. base R approach
@@ -132,18 +132,17 @@ filter(d, !year %in% 2003:2004)
 
 Filter takes any logical statement:
 ```{r, eval = FALSE}
- a == b   ## a is equal to b
- a %in% b ## a is "within" b
- a != b   ## a is not equal to b
- a > b    ## a is greater than b
- a >= b   ## a is greater or equal to b
- a < b    ## a is less than b
- a <= b   ## a is less or equal to b
- a & b    ## a and b
- a | b    ## a or b
- !a       ## not a
- is.na(a) ## is a equal to NA (missing)
-# ...
+ x == a   # x is equal to a
+ x %in% a # x is "within" a
+ x != a   # x is not equal to a
+ x > a    # x is greater than a
+ x >= a   # x is greater or equal to a
+ x < a    # x is less than a
+ x <= a   # x is less or equal to a
+ a & b    # a and b
+ a | b    # a or b
+ is.na(x) # is a equal to NA (missing)
+ ...      # ...
 ```
 
 
@@ -263,7 +262,7 @@ arrange(d, desc(length))
 
 You can also arrange by more that one column:
 ```{r}
-arrange(d, sex, desc(stomach.volume))
+arrange(d, sex, desc(length))
 ```
 
 ## **mutate**: Compute new column
@@ -375,7 +374,7 @@ d %>%
   arrange(desc(obs))
 ```
 
-This needs a bit of explaining. Noticed that the first argument in each function is missing. Instead of calling a function with `f(x,y)` you can do `x %>% f(y)`, that is "take x, then apply f with a setting y". This essentially means that `%>%` operator takes the stuff on the left and places it as the first argument to function on the right hand side. This get infinitely more useful when you start creating longer chains: 
+This needs a bit of explaining. Noticed that the first argument in each function is missing. Instead of calling a function with `f(x,y)` you can do `x %>% f(y)`, that is "take x, then apply f with a setting y". This essentially means that `%>%` operator takes the stuff on the left and places it as the **first** argument to function on the right hand side. This get infinitely more useful when you start creating longer chains: 
 
 ```{r}
 d %>%
@@ -391,7 +390,7 @@ d %>%
   arrange(year)
 ```
 
-Hadley recommends that you "read" the `%>%` as **"then"**. Hence the above can be read as:
+Recomended that you "read" the `%>%` as **"then"**. Hence the above can be read as:
 
 1. take data d
 2. then calculate the weight if missing and K
@@ -421,10 +420,36 @@ read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv") %>%
 # Combine variables (join)
 ___
 
+Normally the data we are interested in working with do not consists in one table only. Take e.g. a typical groundfish survey:
+
+```{r}
+station <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_stations.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+biological <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_biological.csv",
+           stringsAsFactors = FALSE) %>% 
+  as_tibble()
+station %>% select(id:lat1) %>%  arrange(id) %>% glimpse()
+biological %>% arrange(id) %>% glimpse() 
+```
+
+Here the information on the station, such as date, geographical location are kept separate from the detail measurments that are performed at each station (weight and numbers by species. The records in the station table are unique (i.e. each station information only appear once) while we can have more than one species measured at each station. The link between the two tables, in this case, is the variable id.
+
 ## **left_join**: Matching values from y to x
 
 ```{r echo = FALSE}
 knitr::include_graphics("img/left_join.png")
+```
+
+Lets say we were interested in combining the geographical position and the species records from one station:
+
+```{r}
+station %>% 
+  select(id, date, lon1, lat1) %>% 
+  filter(id == 29654) %>% 
+  left_join(biological)
 ```
 
 ## **right_join**: Matching values from x to y
@@ -433,10 +458,21 @@ knitr::include_graphics("img/left_join.png")
 knitr::include_graphics("img/right_join.png")
 ```
 
+This is really the inverse of left_join.
+
 ## **inner_join**: Retain only rows with matches
 
 ```{r echo = FALSE}
 knitr::include_graphics("img/inner_join.png")
+```
+
+Example of only joining station information with monkfish, were monkfish was recorded:
+
+```{r}
+biological %>% 
+  filter(species == "monkfish",
+         kg > 0) %>% 
+  left_join(station)
 ```
 
 ## **full_join**: Retain all rows
@@ -449,7 +485,7 @@ knitr::include_graphics("img/full_join.png")
 <div class="panel-heading">Exercise 1</div>
 <div class="panel-body">
 
-Create dataframe x and y as above and code that mimics the results depicted in the diagrams.
+Run through this set of code that supposedly mimics the pictograms above:
 
 ```{r, eval = FALSE}
 x <- data_frame(A = c("a", "b", "c"),
@@ -500,7 +536,7 @@ knitr::include_graphics("img/setdiff.png")
 <div class="panel-heading">Exercise 2</div>
 <div class="panel-body">
 
-Create dataframe x and y as above and code that mimics the results depicted in the diagrams.
+Run through this set of code that supposedly mimics the pictograms above:
 
 ```{r, eval = FALSE}
 y <- data_frame(A = c("c", "d"),

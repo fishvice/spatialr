@@ -63,13 +63,13 @@ ___
 
 #### Day 1 - Monday
 
-* R, RStudio & housekeeping (EH)
-* Spatial data in R (JB)
+* [R & RStudio](pre_intro.html) (EH)
+* [Spatial data in R](pre_spatial_data.html) (JB)
 * [Introduction to ggplot](pre_ggplot1.html) (EH)
 
 #### Day 2 - Tuesday
 
-* [Data transformation](pre_transfomation.html) (EH)
+* [Data transformation](pre_transformation.html) (EH)
 * [The sf class](pre_sf.html) (JB)
 * [Working with geometries](pre_geometric.html) (JB)
 * projections??
