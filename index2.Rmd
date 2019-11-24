@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 You are here: [https://heima.hafro.is/~einarhj/spatialr](https://heima.hafro.is/~einarhj/spatialr)
 
+The course announcement is [here](http://www.ices.dk/news-and-events/Training/Pages/R.aspx)
+
 ### Time and location
 ___
 
@@ -36,7 +38,7 @@ leaflet() %>%
 ### Preamble
 ___
 
-During the course we will allocate some time for each participant to work on a personal data, doing some manipulation and producing maps.  Please bring any spatial data that you are intersted working with. 
+During the course we will allocate some time for each participant to work on a personal data, doing some manipulation and producing maps.  Please bring any spatial data that you are interested working with. 
 
 **Prior to the course** please install:
 
@@ -57,7 +59,7 @@ ___
 
 (Definitively a) Preliminary schedule:
 
-* Daily schedule (within the time contraint above): 09:00 - 17:30
+* Daily schedule (within the time constraint above): 09:00 - 17:30
 * Lunch: 13:00 - 14:00
 * Coffee: 11:00 - 11:20, 15:30 - 15:45
 
@@ -85,7 +87,7 @@ ___
 
 * [Interactive maps - leaflet](pre_interactive.html) (EH)
 * Other bits and pieces (plotly, mapedit, tmap, mapdeck, cartography)
-* [Reproducable research in R?](pre_markdown.html) (EH) 
+* [Reproducible research in R?](pre_markdown.html) (EH) 
 
 #### Day 5 - Friday
 
