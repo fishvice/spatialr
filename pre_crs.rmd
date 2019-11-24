@@ -97,7 +97,7 @@ knitr::include_graphics("./img/proj3.png")
 ... or select one based on your personality: https://imgs.xkcd.com/comics/map_projections.png
 
 # CRS in R
-The *sf* package links directly to the external library PROJ, a very complete cartographic projection library (http://trac.osgeo.org/proj/).  In the PROJ library, projections are defined using projstring, a text string defining the projection, datum and associated parameters.  Here are some examples:
+The **sf** package links directly to the external library PROJ, a very complete cartographic projection library (http://trac.osgeo.org/proj/).  In the PROJ library, projections are defined using projstring, a text string defining the projection, datum and associated parameters.  Here are some examples:
 
 For unprojected (geographical) data: "+proj=longlat +datum=WGS84"
 
@@ -132,7 +132,7 @@ st_crs(mysf)
 
 ```
 
-We can define it with *st_crs* (or with *st_set_crs* if we use it in a pipe)
+We can define it with *st_crs()* (or with *st_set_crs()* if we use it in a pipe)
 
 ```{r }
 mysf <- data.frame(lat = c(66,65.5), lon = c(-20, -19)) %>%
@@ -166,8 +166,6 @@ europe_moll <- europe %>% st_transform("+proj=moll")
 
 europe_moll <- europe %>% st_transform("+proj=moll")
 
-par(mfrow = c(2, 1))
-
 plot(europe, axes = TRUE)
 plot(europe_moll, axes = TRUE)
 
@@ -176,7 +174,7 @@ st_crs(europe_moll)
 
 ```
 
-Additional projections are available using the *st_transform_proj* in the *lwgeom* package.  The lwgeom package provides bindings to the liblwgeom library (part of the PostGis).
+Additional projections are available using the *st_transform_proj()* in the **lwgeom** package.  The lwgeom package provides bindings to the liblwgeom library (part of the PostGis).
 
 ```{r }
 
@@ -197,7 +195,7 @@ europe_laea1 <- st_transform(europe,
 europe_laea2 <- st_transform(europe,
                             crs = "+proj=laea +lon_0=37.6 +lat_0=55.7")
 
-par(mfrow = c(2, 1))
+
 plot(europe_laea1, axes = TRUE)
 plot(europe_laea2, axes = TRUE)
 
