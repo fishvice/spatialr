@@ -546,7 +546,7 @@ In both functions we should use the argument *method="bilinear"* with continuous
 
 BUT when we reproject rasters (or we do any change in the raster geometry) we **do** change the data.  This is because the raster grid first is adjusted (by moving the origin, or projecting it to a new CRS), and then the cell values (usually taken at the centre of the cells) are interpolated to the centres of the new raster.
 
-This is a limitation of the data model of the **raster** package, which only deals with regular grids.  The **stars** package has a more flexible data model and allows rasters with rotated, irregular and curvilinear grids.
+This is a limitation of the data model of the **raster** package, which only deals with regular grids.  The **stars** package has a more flexible data model and allows rasters with rotated, sheared, irregular and curvilinear grids.
 
 
 ## Rasterization

@@ -364,7 +364,6 @@ st_bbox(sm_ices_er)
 
 ```
 
-
 ## Class *Spatial*
 
 The *Spatial* class includes several derived classes to represent different types of spatial data (with and without associated data).  For vector data, there are classes for points, lines and polygons:

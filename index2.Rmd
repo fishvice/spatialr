@@ -72,7 +72,7 @@ ___
 * [Data transformation](pre_transformation.html) (EH)
 * [The sf class](pre_sf.html) (JB)
 * [Working with geometries](pre_geometric.html) (JB)
-* projections??
+* [Coordinate Reference Systems](pre_crs.rmd) (JB)
 
 #### Day 3 - Wednesday
 
@@ -85,7 +85,7 @@ ___
 
 * [Interactive maps - leaflet](pre_interactive.html) (EH)
 * Other bits and pieces (plotly, mapedit, tmap, mapdeck, cartography)
-* [Reproducable research in R?](pre_markdown.html) (EH) 
+* [Reproducible research in R?](pre_markdown.html) (EH) 
 
 #### Day 5 - Friday
 
@@ -94,7 +94,6 @@ ___
 
 The stuff below will be assigned to specific dates above
 
-* [Coordinate Reference Systems (CRSs)](crs.html)
 
 ### Bits and pieces
 ___
