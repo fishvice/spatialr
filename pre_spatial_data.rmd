@@ -177,3 +177,9 @@ https://r-spatial.github.io/stars/
 
 In early development, the package **terra** is intended to be a replacement of **raster**
 https://github.com/rspatial/terra
+
+There are many more.  For an overview look at the CRAN Task view on analysis of spatial data:
+
+https://cran.r-project.org/web/views/Spatial.html
+
+
