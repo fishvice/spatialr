@@ -1,6 +1,5 @@
 ---
 title: "Introduction to ggplot2"
-subtitle: "Part 1"
 output:
   html_document:
     fig_height: 4
@@ -19,15 +18,18 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 # Getting started
 ___
 
-## Libraries and data
+## Libraries
 
 **Needed libraries**:
 ```{r}
 library(tidyverse)   # installs sweeps of packages
-library(patchwork)   # used for multiplotting
 library(maps)        # some basic country maps
 library(mapdata)     # higher resolution maps
 library(marmap)      # access global topgraphy data
+```
+
+```{r, echo = FALSE}
+library(patchwork)   # used for multiplotting
 ```
 
 ```{r, echo = FALSE}
@@ -43,37 +45,16 @@ cl = function(x, color = "blue"){
 }
 ```
 
-**Importing external data**:
+## Key components of ggplot 
 
-In this tutorial we are going to use the minke data and the Icelandic spring groundfish survey data (see full explonation of variables in [Datasets - overview](datasets_overview.html)).
-
+**Data used**:
 ```{r}
 minke <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv")
 glimpse(minke)
 ```
 
-```{r}
-smb <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-```
-
-In part of the examples used below we will only use one years of the survey data. Hence:
-
-```{r}
-smb2019 <-
-  smb %>% 
-  filter(year == 2019)
-smb2019 %>% select(id:cod_n) %>% glimpse()
-```
-
-Addition data will also be imported further below.
-
-## Key components of ggplot 
+See full explanation of variables in [Datasets - overview](datasets_overview.html)).
 
 ggplot has __three__ key components: 
 
@@ -127,15 +108,23 @@ glimpse(iceland)
 
 Here we have just a simple dataframe with `r nrow(iceland)` coordinates (long and lat) and some other variables. We can try map these coordinates to different layers (more on `r cl("labs")` later):
 
-```{r}
+```{r, fig.height = 5}
 m <- 
-  ggplot(iceland, aes(long, lat, group = group)) +
-  # Overwrite default: suppress the display of labels
-  labs(x = NULL, y = NULL)
+  ggplot(iceland, aes(long, lat, group = group))
 m1 <- m + geom_point()
 m2 <- m + geom_line()
 m3 <- m + geom_path()
 m4 <- m + geom_polygon()
+```
+
+```{r, echo = FALSE}
+m1 <- m1 + annotate("text", x = -18, y = 64.8, label = "point", colour = "red")
+m2 <- m2 + annotate("text", x = -18, y = 64.8, label = "line", colour = "red")
+m3 <- m3 + annotate("text", x = -18, y = 64.8, label = "path", colour = "red")
+m4 <- m4 + annotate("text", x = -18, y = 64.8, label = "polygon", colour = "red")
+```
+
+```{r, echo = FALSE, fig.height = 6}
 m1 + m2 + m3 + m4
 ```
 
@@ -143,15 +132,16 @@ The above sweep of code and plots demonstrate that background maps are just a se
 
 ## Projections
 
-A proper coverage of projections is done in a [xxx](xxx.hmtl), here we just cover some basics with respect to ggplot2.
-
-As noted above a map is just a xy-plot but with a certain projections. We could try to guess the projections (or rather the aspect ration of the plot) as done on the left or better use the specific functions available in ggplot:
+As noted above a map is just a xy-plot but with the **addition** of having a projections. A proper coverage of projections is done in a [xxx](xxx.hmtl), here we just cover some basics with respect to ggplot2. We could try to guess the projections (or rather the aspect ration of the plot) as done on the left or better use the specific functions available in ggplot:
 
 ```{r}
-m1 <- m3 + coord_fixed(ratio = 2.4) 
-m2 <- m3 + coord_quickmap()
-m3 <- m3 + coord_map()
-m4 <- m3 + coord_map(projection = "stereographic")
+m <- 
+  ggplot(iceland, aes(long, lat, group = group)) +
+  geom_path()
+m1 <- m + coord_fixed(ratio = 2.4) 
+m2 <- m + coord_quickmap()
+m3 <- m + coord_map()
+m4 <- m + coord_map(projection = "stereographic")
 ```
 
 ```{r, echo = FALSE}
@@ -161,7 +151,7 @@ m3 <- m3 + annotate("text", x = -18, y = 64.8, label = "coord_map")
 m4 <- m4 + annotate("text", x = -18, y = 64.8, label = "stereographic")
 ```
 
-```{r, fig.height = 5}
+```{r, echo = FALSE, fig.height = 6}
 m1 + m2 + m3 + m4
 ```
 
@@ -172,30 +162,96 @@ Note that the `r cl("geom_quickmap")` is an approximation (albeit good one for m
 The power of ggplot comes into place when one adds layers on top of other layers. With the following code one first generates the background-map and then adds the minke datapoints on **top** of that background map:
 
 ```{r}
-p <-
+m <-
   ggplot() +
   geom_polygon(data = iceland, 
-               aes(long, lat, group = group),
-               fill = "grey") +
+               aes(long, lat, group = group)) +
   geom_point(data = minke, 
-             aes(lon, lat, colour = sex)) +
-  labs(x = NULL, y = NULL)
-p + coord_quickmap()
+             aes(lon, lat, colour = sex))
+m + coord_quickmap()
 ```
 
-Besides adding a `r cl("point")` layer on **top** of the `r cl("polygon")` layer we have added two aesthetics:
+Besides adding a `r cl("point")` layer on **top** of the `r cl("polygon")` layer we have added one aesthetics:
 
-* `fill`: This argument overrides the default fill argument in ggplot ("black"). Take note that it is called outside the `r cl("aes")`-function (so it acts like a constant).
 * `colour`: Here we are letting the value of the variable sex control the colour displayed. Hence we call that argument within the `r cl("aes")`-function.
 
 We will be introduced to more aesthetics as we move along.
 
-## Zooming in on a plot
+## Customization
+
+ggplot2 provides a lot of sensible defaults that it derives from the data used to generate a plot. Here we will take a peek on those of that may be of most interest for now, further customization being introduced as we move along.
+
+When one writes:
+
+```{r}
+p <- 
+  ggplot(minke) + 
+  geom_point(aes(lon, lat, colour = sex))
+```
+
+what ggplot does is actually:
+
+```{r, eval = FALSE}
+ggplot(minke) + 
+  geom_point(aes(lon, lat, colour = sex)) +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_colour_discrete()
+```
+
+Within the `r cl("scale_")`-functions all the settings take the default argument, check e.g.:
+```{r, eval = FALSE}
+?scale_x_continuous
+```
+
+Here we observe among other things: name, breaks, minor_breaks, limits, position, ... Here is an example where among other the default name and breaks are overwritten:
+
+```{r}
+p + 
+  scale_x_continuous(name = "Longitude",
+                     breaks = seq(-25, -10, by = 1),
+                     minor_breaks = NULL) +
+  scale_y_continuous(name = "Latitude",
+                     breaks = seq(63, 67, by = 0.5),
+                     minor_breaks = NULL) +
+  scale_colour_discrete(name = "Sex") +
+  coord_map()
+```
+
+If one was interested in:
+
+* Overwrite the default black colour in the polygon with grey (fill = "grey")
+* Suppressing the axis labels (name = NULL)
+* Suppressing the axis values (breaks = NULL)
+* Change the default colour palette to brewer scale (palette = "Set1")
+* Place the legend in the center of the figure (theme(legend.position = c(0.5, 0.5)))
+
+we would do:
+```{r}
+m <- 
+  ggplot() +
+  geom_polygon(data = iceland, 
+               aes(long, lat, group = group),
+               fill = "grey") +
+  geom_point(data = minke,
+             aes(lon, lat, colour = sex)) +
+  scale_x_continuous(name = NULL,
+                     breaks = NULL) +
+  scale_y_continuous(name = NULL,
+                     breaks = NULL) +
+  scale_colour_brewer(name = "Sex",
+                      palette = "Set1") +
+  theme(legend.position = c(0.5, 0.5)) +
+  coord_map()
+m
+```
+
+If one only interested in overwriting the default axis-name one could use the `r cl("labs")`-shortcut function.
 
 One of ggplot defaults is that the range of the x and the y-axis is dictated by the range in the data. If we want to "zoom into" a plot we can overwrite the default boundaries of the horizontal and vertical axis by calling the arguments xlim and ylim within the `r cl("coord_quickmap")`-function.
 
 ```{r}
-p + coord_quickmap(xlim = c(-25, -20), ylim = c(65, 66.6))
+m + coord_quickmap(xlim = c(-25, -20), ylim = c(65, 66.6))
 ```
 
 ## Exercise
@@ -207,11 +263,26 @@ p + coord_quickmap(xlim = c(-25, -20), ylim = c(65, 66.6))
 * Emulate the following map of the Faeroe Islands (or use whatever country you like) using the data in the map-package (hint: Faeroe Island is a colony of a country).
 * What happens if you do not use the group-argument?
 
+The minke data used is:
+
+```{r}
+minke.fo <- 
+  tibble(lon = c(-8.5, -5.5),
+         lat = c(61.5, 62.2),
+         sex = c("Male", "Female"))
+```
+
 ```{r, echo = FALSE}
-map_data("worldHires", region = "Denmark") %>% 
-  ggplot() +
-  geom_polygon(aes(long, lat, group = group),
+fo <- map_data("worldHires", region = "Denmark")
+
+ggplot() +
+  geom_polygon(data = fo,
+               aes(long, lat, group = group),
                fill = "grey", colour = "darkgreen") +
+  geom_point(data = minke.fo,
+             aes(lon, lat, colour = sex)) +
+  scale_x_continuous(breaks = seq(-9, -5, by = 0.5)) +
+  scale_color_brewer(palette = "Set1") +
   labs(x = NULL, y = NULL) +
   coord_map(xlim = c(-9, -5), ylim = c(61.25, 62.5))
 ```
@@ -219,12 +290,20 @@ map_data("worldHires", region = "Denmark") %>%
 </div>
 </div>
 
-# Layers
+# More layers
 ___
 
 Here we will only focus on ggplot `r cl("layers")` that are useful when plotting spatial data.
 
-Since we are going to use some Icelandic survey data in the following example (and for the sake of code clarity) we first generate a reference background layer:
+**Data used**:
+```{r}
+smb <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv") 
+smb2019 <- filter(smb, year == 2019)
+glimpse(smb2019)
+```
+
+Since we are going to use some Icelandic survey data in the following example we first generate an appropriate reference background layer:
 ```{r}
 m <- 
   ggplot() +
@@ -234,8 +313,6 @@ m <-
   scale_x_continuous(name = NULL, breaks = NULL) +
   scale_y_continuous(name = NULL, breaks = NULL)
 ```
-
-The `r cl("scale_*_continuous")`-function is used here to suppress the default name and breaks that ggplot assigns (this would not need to be suppressed in R base-plot).
 
 ## geom_segment
 
@@ -303,12 +380,11 @@ ggplot() +
 
 ## geom_path
 
-We have already shown a plot using the `r cl("path")`-layer, but just to create a background map. For a more appropriate demonstration lets use the track data from the 2019 spring survey. Besides the coordinate data the key additional element of this dataset is time, which it has already been ordered by.
+We have already shown a plot using the `r cl("path")`-layer, but just to create a background map. For a more appropriate demonstration lets use the vessel track data from the 2019 spring survey. Besides the coordinate data the key additional element of this dataset is time, which it has already been ordered by.
 
 ```{r}
-# move this to the header (or not)
 track <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv")
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv")
 ```
 
 ```{r}
@@ -353,7 +429,7 @@ This display has still at least two problems:
 <div class="panel-heading">Exercise</div>
 <div class="panel-body">
 
-Ameliorate the plot above such that is looks like this (you have to start from scratch):
+Ameliorate the code for the plot above such that is looks like this (you have to start from scratch):
 
 ```{r, echo = FALSE}
 s <-
@@ -407,7 +483,7 @@ m +
 
 ## geom_contour
 
-We will later deal with the syntax for generating contours from rasters. However, as is often the case, ggplot provides a shortcut for generating contours based on raster data, the `r cl("conour")`-layer.
+We will later deal with the syntax for generating contours from rasters. However, as is often the case, ggplot provides a shortcut for generating contours based on raster data, the `r cl("contour")`-layer.
 
 ```{r}
 m2 <- 
@@ -453,10 +529,12 @@ ggplot() +
                    xend = lon2, yend = lat1),
                colour = "cyan") +
   geom_point(data = smb2019,
-             aes(x = lon1, y = lat1, size = cod_age1),
+             aes(x = lon1, y = lat1, size = wolffish_kg),
              colour = "red",
              alpha = 0.5) +
   scale_size_area(max_size = 10) +
+  # do not show legend for the depth raster
+  scale_fill_continuous(guide=FALSE) +
   scale_x_continuous(name = NULL, breaks = NULL) +
   scale_y_continuous(name = NULL, breaks = NULL) +
   coord_quickmap()
@@ -467,7 +545,7 @@ ggplot() +
 
 # Facetting
 
-Facetting allows one to split up the data by a variable and display the same graph for each subset. One can split the data by one varible (wrap) or by two variables (grid).
+Facetting allows one to split up the data by a variable and display the same graph for each subset. One can split the data by one variable (wrap) or by two variables (grid).
 
 ## facet_wrap
 
@@ -475,8 +553,8 @@ Lets say we want to visualize the survey biomass of a species (here haddock) ove
 
 ```{r}
 smb2 <- 
-  smb %>% 
-  filter(year %in% c(1995, 2000, 2005, 2010, 2015, 2019))
+  # more on filter later
+  filter(smb, year %in% c(1995, 2000, 2005, 2010, 2015, 2019))
 p <-
   m + 
   geom_point(data = smb2,
@@ -490,23 +568,29 @@ p +
 
 ## facet_grid
 
+**data used**: Survey abundance data of cod by year, age and yearclass at each station.
 
 ```{r}
-# put this on ftp
-d <- 
-  smb %>% 
-  select(id, year, lon1, lat1, cod_age1:cod_age3) %>% 
-  gather(age, n, cod_age1:cod_age3) %>% 
-  mutate(age = str_sub(age, 8) %>% as.integer(),
-         yc = year - age) %>% 
-  filter(yc %in% c(1984, 1985, 1996, 1997))
+rbya <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_cod_rbya.csv")
+rbya <- filter(rbya, yc %in% c(1984, 1985, 1996, 1997))
+glimpse(rbya)
+```
 
+Note: Here we have filtered out four year classes.
+
+```{r, fig.height = 7}
 m + 
-  geom_point(data = d,
+  geom_point(data = rbya,
              aes(lon1, lat1, size = n),
              alpha = 0.2,
              colour = "red") +
   scale_size_area(max_size = 10) +
-  facet_grid(age ~ yc)
+  facet_grid(age ~ yc) +
+  labs(title = "Abundance of cod", 
+       subtitle = "By yearclass and age",
+       size = "per 4 miles")
 ```
+
+Note: The in the `r cl("facet_grid")`-function the first variable (here age) is plotted as rows, the second variable (here yearclass) as columns.
 

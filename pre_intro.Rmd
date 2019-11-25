@@ -18,6 +18,10 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ## Preamble
 ___
 
+### The announcement
+
+[THE CALL](http://www.ices.dk/news-and-events/Training/Pages/R.aspx)
+
 ### The course material
 
 The course material is open source, meaning that the source code is made freely available and may be redistributed and modified.
@@ -47,7 +51,7 @@ knitr::include_graphics("img/data_science.png")
     * ...
 * Model
     * Once questions made sufficiently precise, one can use a model to answer them
-    * Model cannot question its own assumptions!
+    * Model cannot question its "own" assumptions!
 * Communicate
     * Presentation and documentation
 
@@ -80,6 +84,7 @@ R has become the *lingua franca* of statistical analysis and data wrangling
 * It provides an unparalleled platform for programming new statistical
 methods in an easy and straightforward manner
 * It offers powerful tools for data exploration and presentation
+* Encompasses reproducible workflow
 
 #### Download R
 

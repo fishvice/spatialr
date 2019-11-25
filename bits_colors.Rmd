@@ -63,7 +63,7 @@ knitr::include_graphics("./img/colorspace2.png")
 knitr::include_graphics("./img/colorspace.png")
 ```
 
-```{r }
+```{r, eval = FALSE}
 library(colorspace)
 pal <- choose_palette()
 
