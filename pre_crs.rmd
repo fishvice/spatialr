@@ -82,7 +82,7 @@ Conformal projections preserve local shapes.
 knitr::include_graphics("./img/proj3.png")
 ```
 
-## Which projection to use?
+# Which projection to use?
 - Do not simply ignore CRSs.  Select an appropriate projection for your map/project.
 - Projections are not wrong nor right.  They simply have different properties and are used for different purposes.
 - For densities (points per grid cell), use equal-area projections.  For example, use the Lambert azimuthal equal-area (LAEA) with center in your study area (select the lon_0 and lat_0 parameteres).  LAEA maintains the area of the objects, but distorts the shape away from the center.
@@ -150,7 +150,7 @@ st_set_crs(mysf, 5325)
 ```
 By doing this we are changing the metadata of the object, but we are *not* reprojecting the data.
 
-## Changing the projection of vector data
+# Changing the projection of vector data
 Vector data is comprised of points and combination of points into lines and polygons.  Reprojecting vector data consists on transforming the coordinates of these points.
 
 In most cases we use the *st_transform()* function to project sf objects.  This function can receive the proj4 string or the EPSG code of the target projection.
@@ -198,5 +198,39 @@ europe_laea2 <- st_transform(europe,
 
 plot(europe_laea1, axes = TRUE)
 plot(europe_laea2, axes = TRUE)
+
+```
+
+# Projections in ggplot
+One of the advantages of using the *sf* objects is that we can utilise the *geom_sf()* function when plotting with ggplot.  *geom_sf()* uses by default the *coord_sf()* function to control the coordinate system of the plot.  *coord_sf()* ensures that all layers use a common CRS (otherwise it is not possible to place them together in the same graph). You can either specify it using the CRS argument, or coord_sf() will take it from the first layer that defines a CRS.
+
+
+Let's load two *sf* objects with different CRS's.:
+```{r }
+
+coast <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/iceland_coastline.gpkg")
+st_crs(coast)
+
+depth <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/iceland_contours.gpkg")
+st_crs(depth)
+
+```
+Note the differences:
+
+```{r }
+ggplot() +
+  geom_sf(data = coast, fill = "darkgray") +
+  geom_sf(data = depth)
+
+
+ggplot() +
+  geom_sf(data = depth) +
+  geom_sf(data = coast, fill = "darkgray")
+
+ggplot() +
+  geom_sf(data = depth) +
+  geom_sf(data = coast, fill = "darkgray") +
+  coord_sf(crs = 4087) # World Equidistant Cylindrical projection
+
 
 ```
