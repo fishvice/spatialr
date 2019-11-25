@@ -1,0 +1,148 @@
+---
+title: "Reading and writting spatial data"
+output:
+  html_document:
+    fig_height: 4
+    fig_width: 9
+    highlight: haddock
+    theme: united
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+https://bookdown.org/robinlovelace/geocompr/read-write.html
+
+https://keen-swartz-3146c4.netlify.com/intro.html#reading
+
+ http://switchfromshapefile.org/
+
+Spatial data is stored in files and in spatial databases.  In this course we will focus on reading files.
+
+There is a large array of file formats for spatial data, both vector and raster data.  To get an idea, we can do this:
+
+
+```{r }
+library(tidyverse)
+library(sf)
+
+drivers1 <- st_drivers("vector") %>% select(long_name)
+nrow(drivers1)
+
+drivers2 <- st_drivers("raster") %>% select(long_name)
+nrow(drivers2)
+
+```
+
+# GDAL
+
+What we just saw are the file formats that can be read with GDAL library.
+
+The Geospatial Data Abstraction Library (GDAL) is an external library for reading and writing raster and vector geospatial data in many (>220) formats and databases.
+
+A full list of vector data drivers:
+https://gdal.org/drivers/vector/index.html
+
+and of raster data drivers:
+https://gdal.org/drivers/raster/index.html
+
+
+GDAL is the workhorse for reading and writing spatial data, used by many programs including ArcGis and QGIS.
+
+In R, the **rgdal** package provides the functions *readOGR()* and *writeOGRL()*, and *readGDAL()* and *writeGDAL()* to read and write vector and raster data, respectively.  But **rgdal** uses objects of class *sp*.
+
+To reading and writing to and from *sf* objects, we use the functions *st_read()* and *st_write()* from the **sf** package.  These functions link directly to the GDAL library, allowing us to read any of the formats listed using the *st_drivers()* function.
+
+GDAL also includes a large array of programs to manipulate and process vector and raster data.
+
+https://gdal.org/programs/index.html
+
+You can use GDAL programs from R using the **gdalUtils** package.  Several of the functions of the **sf** packages (and others) use GDAL functions "under the hood".
+
+# Common file formats
+## Shapefiles
+
+One of the most commonly used is the shapefile, developed by ESRI (the makers of ArcGis). A lot of the vector data you will find online is in this format.  But it has limitations (see http://switchfromshapefile.org/).
+
+They can hold either points, lines or polygons.
+
+A shapefile is not a single file, but several files with the same name, different extensions, in the same folder. There are three mandatory files:
+
+ .shp shape format (geometric entities)
+ .shx index of the geometric entities
+ .dbf attributes (data)
+
+Other files usually include a .prj file, with the coordinate system.
+
+Shapefile is not an open format.
+
+Let's take a look at some shapefiles.  This bit of code creates the "data_raw" folder (in case it does not exist), downloads a zip file with two shapefiles, extracts the shapefiles from the zip file, and finally deletes the zip file.
+
+```{r }
+
+dir.create("./data_raw")
+target.file <- "./data_raw/Iceland_shapefiles.zip"
+
+download.file(url = "ftp://ftp.hafro.is/pub/data/shapes/Iceland_shapefiles.zip",
+              destfile = target.file)
+
+unzip(target.file, overwrite = TRUE,
+      exdir = "./data_raw/")
+
+file.remove(target.file)  # Delete the zip file
+
+```
+
+Examine the "./data_raw/Iceland_shapefiles" folder.  You will see two set of files with the same name and different extensions.  These are two shapefiles with the coastline and depth contours for Iceland.
+
+To read shapefiles, we use either the *read_sf()* (which has nicer defaults) or *st_read()* functions.
+
+```{r }
+# We can point directly to the *.shp file.
+coast <- read_sf("./data_raw/Iceland_shapes/Iceland_coast.shp")
+
+# Or we can use the dsn/layer format (note that we do not use the .shp ending)
+coast <- read_sf(dsn = "./data_raw/Iceland_shapes", "/Iceland_coast.shp")
+
+glimpse(coast)
+
+```
+
+## OGC GeoPackages
+A geopackage is a new format for vector data that uses *a single file* (usually .gpkg).  It was developed as an alternative to shapefiles by the Open Geospatial Consortium.  It is an open format, supported by most GIS software.
+
+They can store both vector and raster data, with attributes.
+
+We have been reading geopackage files already. :)
+
+
+## CSV (comma separated files)
+- Not standardised.
+- Storing geometries beyond points get complicated.
+
+
+# Writing spatial data
+To write spatial data into a file, we can use the *write_sf()* or the *st_write()* functions. These functions can guess the driver needed based on the extension of the target file.
+
+```{r }
+
+write_sf(coast, "./data_raw/my_shapefile.shp")
+
+write_sf(coast, "./data_raw/my_geopackage.gpkg")
+
+
+```
+
+## Writting to csv
+If you use st_write() to save an *sf* objects with points, by default the coordinates will not be included.
+
+You can include the coordinates (which is usually what we want) by doing
+```{r }
+
+st_write(mypts, "pts.csv", layer_options = "GEOMETRY=AS_XY")
+
+```
+This passes an argument to the GDAL function doing the writting.
