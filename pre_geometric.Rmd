@@ -3,15 +3,18 @@ title: "Working with geometries in sf objects"
 output:
   html_document:
     fig_height: 4
-    fig_width: 8
+    fig_width: 9
     highlight: haddock
-    theme: cerulean
+    theme: united
     toc: yes
     toc_float: yes
+    toc_depth: 2
 ---
-```{r, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
+
 #### These are the packages needed for this tutorial:
 ```{r setup}
 library(tidyverse)
