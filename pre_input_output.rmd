@@ -99,7 +99,7 @@ To read shapefiles, we use either the *read_sf()* (which has nicer defaults) or 
 coast <- read_sf("./data_raw/Iceland_shapes/Iceland_coast.shp")
 
 # Or we can use the dsn/layer format (note that we do not use the .shp ending)
-coast <- read_sf(dsn = "./data_raw/Iceland_shapes", "/Iceland_coast.shp")
+coast <- read_sf(dsn = "./data_raw/Iceland_shapes/", "Iceland_coast")
 
 glimpse(coast)
 
@@ -134,7 +134,11 @@ write_sf(coast, "./data_raw/my_geopackage.gpkg")
 If you use st_write() to save an *sf* objects with points, by default the coordinates will not be included.
 
 You can include the coordinates (which is usually what we want) by doing
+
 ```{r }
+mypts <- data.frame(lon = c(-11.77, -11.76, -11.744),
+                    lat = c(66.02, 66.018, 66.014)) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
 st_write(mypts, "pts.csv", layer_options = "GEOMETRY=AS_XY")
 
