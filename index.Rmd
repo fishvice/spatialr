@@ -100,23 +100,21 @@ ___
 
 
 
-### Yet unordered presentations
-
-The stuff below will be assigned to specific dates above
 
 
-### Bits and pieces
+## Bits and pieces
 ___
+
+### Datasets used
 
 * [Information of datasets used](datasets_overview.html)
 
 ### Potential projects
-___
+
+...
 
 
-
-### resource list of spatial objects
-
+....
 
 ### References
 ___
