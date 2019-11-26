@@ -74,6 +74,7 @@ ___
 
 * [Data transformation](pre_transformation.html) (EH)
 * [The sf class](pre_sf.html) (JB)
+* [Reading/writing spatial data](pre_input_output.html)(JB)
 * [Working with geometries](pre_geometric.html) (JB)
 * [Coordinate Reference Systems](pre_crs.html) (JB)
 
