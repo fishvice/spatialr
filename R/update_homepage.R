@@ -7,4 +7,5 @@ for(i in 1:length(fil)) {
   render(input = fil[i])
 }
 system("cp ~/edu/spatialr/*.html /net/www/export/home/hafri/einarhj/public_html/spatialr/.")
+system("cp ~/edu/spatialr/*.Rmd /net/www/export/home/hafri/einarhj/public_html/spatialr/.")
 system("chmod -R a+rx /net/www/export/home/hafri/einarhj/public_html/spatialr")

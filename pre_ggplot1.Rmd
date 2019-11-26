@@ -18,6 +18,8 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 # Getting started
 ___
 
+The [ggplot bible](https://ggplot2-book.org)
+
 ## Libraries
 
 **Needed libraries**:
@@ -116,6 +118,16 @@ m2 <- m + geom_line()
 m3 <- m + geom_path()
 m4 <- m + geom_polygon()
 ```
+
+
+```{r, eval = FALSE}
+# quickfix: to see the plot type,
+m1
+m2
+m3
+m4
+```
+
 
 ```{r, echo = FALSE}
 m1 <- m1 + annotate("text", x = -18, y = 64.8, label = "point", colour = "red")
@@ -253,6 +265,12 @@ One of ggplot defaults is that the range of the x and the y-axis is dictated by 
 ```{r}
 m + coord_quickmap(xlim = c(-25, -20), ylim = c(65, 66.6))
 ```
+
+A list of all the fixed (english) colour available in R:
+```{r, eval = FALSE}
+colours()
+```
+
 
 ## Exercise
 
@@ -416,6 +434,22 @@ Do not like the default colour?. Try:
 p +
   scale_fill_viridis_c(option = "B", direction = -1)
 ```
+
+```{r, echo = FALSE, eval = FALSE}
+# http://www.sthda.com/english/wiki/ggplot2-colors-how-to-change-colors-automatically-and-manually
+p + scale_fill_gradient(low = "white", high = "black")
+p + scale_fill_gradient(low = "white", high = "black")
+p + scale_fill_gradientn(colours = rainbow(5))
+p + 
+  scale_fill_gradient(low = munsell::mnsl("5G 9/2"), 
+                      high = munsell::mnsl("5G 6/8"))
+library(colorspace)
+p + scale_fill_continuous_sequential(palette = "Purples 3",
+                                     begin = 0.2, end = 0.8)
+```
+
+
+
 
 This display has still at least two problems:
 
@@ -593,4 +627,15 @@ m +
 ```
 
 Note: The in the `r cl("facet_grid")`-function the first variable (here age) is plotted as rows, the second variable (here yearclass) as columns.
+
+# Bits
+
+### Getting location from ggplot
+
+In base R there is function called locator. For ggplot there is an equivalent function available in the ggmap-package. Check out:
+```{r, eval = FALSE}
+library(ggmap)
+?gglocator
+```
+
 

@@ -34,7 +34,7 @@ cl = function(x, color = "blue"){
 
 
 
-```{r, width = 150, echo = FALSE, eval = FALSE}
+```{r, width = 150, echo = FALSE}
 include_graphics("img/data_science.png")
 ```
 
@@ -208,7 +208,7 @@ You can also omit certain columns using negative indexing: for example you can s
 select(d, -length)
 ```
 
-A combination of negative indexes could be written as:
+A combination of variables to drop could be written as:
 ```{r, eval = FALSE}
 select(d, -c(weight, maturity))
 ```
@@ -245,7 +245,7 @@ include_graphics("img/rename.png")
 If you just want to rename a couple of columns in the data frame leaving the other columns intact you can use the function `r cl("rename")`:
 
 ```{r}
-rename(d, yr = year)
+rename(d, time = date)
 ```
 
 
