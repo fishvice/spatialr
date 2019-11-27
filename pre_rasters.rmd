@@ -3,14 +3,16 @@ title: "Rasters"
 output:
   html_document:
     fig_height: 4
-    fig_width: 8
+    fig_width: 9
     highlight: haddock
-    theme: cerulean
+    theme: united
     toc: yes
     toc_float: yes
+    toc_depth: 2
 ---
-```{r, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
 # Getting started
@@ -27,50 +29,7 @@ library(marmap)      # access global topography data
 
 ```
 
-**Loading external data**
-We will load two rasters with near-bottom temperatures in Icelandic waters.  These were compiled using data from NISE (Norwegian Iceland Seas Experiment) project.  Note how we use the function *raster()* to load a raster file (in this case in format GeoTIFF).
-
-```{r}
-# Minimum temperature
-mintemp <- raster("ftp://ftp.hafro.is/pub/data/rasters/Iceland_minbtemp.tif")
-
-# Maximum temperature
-maxtemp <- raster("ftp://ftp.hafro.is/pub/data/rasters/Iceland_maxbtemp.tif")
-
-# And a bit of data off the Faroe Islands
-far_temp <- raster("ftp://ftp.hafro.is/pub/data/rasters/Faroes_minbtemp.tif")
-
-```
-
-Near-bottom current speed from
-Bio-ORACLE (http://www.bio-oracle.org/) using the **sdmpredictors** package.
-
-```{r }
-# Near-bottom current speeds
-current_sp <- raster("ftp://ftp.hafro.is/pub/data/rasters/Iceland_currentsp.tif")
-
-```
-Here we use the *getNOAA.bathy* function to download bottom depth data from NOAA's ETOPO1 database.
-
-```{r }
-xlim <- c(-28, -10)
-ylim <- c(62.5, 67.5)
-
-dir.create("./data_raw") # Where the data will be saved
-setwd("./data_raw")
-
-depth <-
-  getNOAA.bathy(lon1 = xlim[1], lon2 = xlim[2],
-                lat1 = ylim[1], lat2 = ylim[2],
-                resolution = 1, keep=TRUE) %>% # Write the data into your hard drive
-  as.raster() # Convert to a raster object
-setwd ("../")
-
-depth[depth > 0] <- NA # Ignore land
-
-```
-
-## Raster data model
+# Raster data model
 
 Raster data is used to represent parameters that vary continuously in space.
 
@@ -95,14 +54,14 @@ Each cell has an individual ID. To define a raster you need to define:
 
 Some raster formats can have multiple bands (layers).
 
-## Rasters classes in R
+# Rasters classes in R
 There main package to read and manipulate rasters is the **raster** package, which provides three classes:
 
   - **RasterLayer** for single variable datasets
   - **RasterBrick** for multiband data in a single file (e.g. multispectral satellite data)
   - **RasterStack** for multi-variable datasets originating from multiple files.
 
-## Reading rasters into R
+# Reading rasters into R
 
 There are many different formats for raster data.  The **raster** packages uses the external library **GDAL** to read them.  You can get the list of all possible formats here:
 
@@ -110,9 +69,19 @@ There are many different formats for raster data.  The **raster** packages uses 
 
 TIFF or geoTIFF (.tif or .tiff) and ASCII grid (.asc) are two of the most common formats.
 
-Reading rasters using the **raster** package is easy.  Just use the *raster()* function.  Let's try it with a raster with bottom temperature around Iceland.
+Reading rasters using the **raster** package is easy.  Just use the *raster()* function.  Let's try it with a raster with bottom temperature around Iceland.  These were compiled using data from NISE (Norwegian Iceland Seas Experiment) project.  Note how we use the function *raster()* to load a raster file (in this case in format GeoTIFF).
+
 
 ```{r}
+# Minimum temperature
+mintemp <- raster("ftp://ftp.hafro.is/pub/data/rasters/Iceland_minbtemp.tif")
+
+# Maximum temperature
+maxtemp <- raster("ftp://ftp.hafro.is/pub/data/rasters/Iceland_maxbtemp.tif")
+
+# And a bit of data off the Faroe Islands
+far_temp <- raster("ftp://ftp.hafro.is/pub/data/rasters/Faroes_minbtemp.tif")
+
 temps <- stack(mintemp, maxtemp) # A rasterstack
 
 class(mintemp)
@@ -139,7 +108,7 @@ plot(temps)
 
 ```
 
-## Raster metadata
+# Raster metadata
 If we print the raster we can see the metadata, including the dimension, resolution, extent, coordinate reference system, location, and range of values.
 
 We can use the *GDALinfo()* function in the **rgdal** package to extract the metadata.
@@ -153,7 +122,7 @@ The coordinate reference system can be extracted (and set) with the **crs()** fu
 
 ```{r }
 
-crs(mintemp)
+crs(mintemp)  # Not st_crs
 
 ```
 
@@ -162,11 +131,11 @@ The *extent()* function provides an object of class *extent*. with the ranges of
 ```{r }
 extent(mintemp) # An object of class extent
 
-bbox(mintemp) # A matrix
+bbox(mintemp) # A matrix.  Also, #Not st_bbox
 
 ```
 
-## Summary statistics
+# Summary statistics
 The function *cellStats()* computes summary statistics of a *raster* object.
 
 ```{r }
@@ -183,7 +152,7 @@ hist(mintemp)
 ```
 
 
-## Rasters with categorical (factor) data
+# Rasters with categorical (factor) data
 Raster objects can store logical, integer, continuous or categorical data.
 
 Rasters with categorical data contain a "raster attribute table" or RAT.  The values in raster cells are integers that act as an index to the actual values in the RAT.
@@ -237,8 +206,8 @@ rasterVis::levelplot(temp_factor,
 **rasterVis** can make different types of plots using raster data.  It is based on the lattice system of graphics, which has its own syntax and idiosyncrasy.
 
 
-## Manipulation of raster objects
-#### Extracting values from a raster
+# Manipulation of raster objects
+## Extracting values from a raster
 To extract values from a *raster* object, we use the bracket ([) operator or the *extract()* function.  Beware that there is also an *extract()* function in the tidyverse.  This is a common source of conflict when **raster** and the tidyverse are used at the same time.
 
 ```{r }
@@ -278,7 +247,7 @@ plot(rst)
 
 ```
 
-#### Replacing values
+## Replacing values
 In the same way that we do extractions, we can replace the values of cells with new values.
 
 ```{r }
@@ -293,7 +262,7 @@ plot(rst)
 
 ```
 
-#### Masks
+## Masks
 
 We can mask a raster with another raster with the same geometry.  Cells with NA values in the mask are removed from the masked raster.
 
@@ -322,7 +291,7 @@ rst_masked[cells] <- NA
 
 ```
 
-#### Extracting raster data with sf objects
+## Extracting raster data with sf objects
 
 ```{r }
 bt_points <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ice_points.gpkg")
@@ -368,7 +337,7 @@ plot(temp_masked_inv)
 
 ```
 
-## Raster algebra
+# Raster algebra
 
 Rasters are a very efficient way to do mathematical operations on spatial data.  This is because the coordinates of cells are not stored explicitly.  When we do a cell-by-cell operation, we can ignore the cell coordinates and treat the data as long vector or a matrix.  And we can do fast operations between two or more rasters if they share the same geometry.
 
@@ -378,7 +347,7 @@ tempkelv <- mintemp +  273
 tempsq <- mintemp ^ 2
 tempdiff <- maxtemp - mintemp
 
-par(mfrow = c(2, 2))
+par(mfrow = c(1, 2))
 plot(mintemp)
 plot(tempkelv)
 plot(tempsq)
@@ -386,14 +355,30 @@ plot(tempdiff)
 
 ```
 
-#### Moving window operations
+# Moving window operations
 A moving window operation (also known as kernel) is a computation carried out in each cell but using values of adjacent cells.  The group of adjacent cells used is known as the "window".
 
 Commonly windows are rectangular (often 3x3 cells), but they can have any size or shape.
 
-Let's calculate the variability of bottom depth using two window sizes:
+Let's calculate the variability of bottom depth using two window sizes.  Here we use the *getNOAA.bathy* function to download bottom depth data from NOAA's ETOPO1 database.
+
 
 ```{r }
+# Get depth data
+xlim <- c(-28, -10)
+ylim <- c(62.5, 67.5)
+
+depth <-
+  getNOAA.bathy(lon1 = xlim[1], lon2 = xlim[2],
+                lat1 = ylim[1], lat2 = ylim[2],
+                resolution = 1, keep=TRUE) %>% # Write the data into your hard drive
+  as.raster()  # Convert to a raster object
+
+writeRaster(depth, "./data/Iceland_depth.tif",
+            overwrite=TRUE) # Save raster for latter use
+
+depth[depth > 0] <- NA # Ignore land
+
 # Small scale depth variability in a 3x3 window
 depth_var_ss <- focal(depth,
                    w = matrix(1/9,nrow=3),
@@ -412,12 +397,18 @@ plot(depth_var_ls)
 
 ```
 
-## Zonal statistics
+# Zonal statistics
 Zonal statistics refers to the calculation of statistics on values of a raster within the zones of another raster.  Both rasters need to have the same geometry.
 
-Here we will find out the average current speed in three depth zones defined at 400 and 700m.
+Here we will find out the average current speed in three depth zones defined at 400 and 700m.  Near-bottom current speed from Bio-ORACLE (http://www.bio-oracle.org/) using the **sdmpredictors** package.
 
 ```{r }
+
+
+# Near-bottom current speeds
+current_sp <- raster("ftp://ftp.hafro.is/pub/data/rasters/Iceland_currentsp.tif")
+
+
 # Classification matrix
 cm <- matrix(c(
   -400, 0, 1,
@@ -441,8 +432,8 @@ zonal(current_sp,
 
 ```
 
-## Changing the geometry of a raster
-#### Modify the extent and origin
+# Changing the geometry of a raster
+## Modify the extent and origin
 The *extend()* function returns a raster with a larger extent.  The *origin()* function changes the origin of the raster.
 
 ```{r }
@@ -457,7 +448,7 @@ extent(or_depth)
 
 ```
 
-#### Changing the resolution
+## Changing the resolution
 
 The functions *aggregate()* and *dissagregate()* can be used to change the resolution of a raster by splitting or merging cells.
 
@@ -481,7 +472,7 @@ plot(dis_depth)
 
 ```
 
-#### Cropping
+## Cropping
 We can crop a raster using an *extent* object or any object from which an *extent* object can be extracted.
 
 ```{r }
@@ -493,7 +484,7 @@ plot(crop_depth)
 
 ```
 
-#### Merging rasters
+## Merging rasters
 To merge rasters we have two options.  We can use the *merge()* function, which in the overlapping areas use the values of the first raster.  We can also use the *mosaic()* function which allows for using a function to compute the cell values in overlapping areas.
 
 
@@ -510,7 +501,7 @@ plot(icefar_temp2)
 
 ```
 
-#### Resampling and projecting rasters
+## Resampling and projecting rasters
 Often we want to change the geometry of a raster to match the geometry of some other raster.  This is needed for example when we want to use data from different sources into a single analysis.
 
 **Resampling** refers to transferring values between rasters with different origin and/or resolution.  If we rasters have different coordinate reference systems (CRS), we are **projecting** the raster.
@@ -549,7 +540,7 @@ BUT when we reproject rasters (or we do any change in the raster geometry) we **
 This is a limitation of the data model of the **raster** package, which only deals with regular grids.  The **stars** package has a more flexible data model and allows rasters with rotated, sheared, irregular and curvilinear grids.
 
 
-## Rasterization
+# Rasterization
 Rasterization is the process of converting vector data of some kind into a raster.  How this is done exactly depends on the type of vector data (POINT, LINESTRING, POLYGON) and on the arguments we pass, for example, to the *rasterize()* function.
 
 To do a rasterization we need to select a target raster, which is often another raster dataset to which we want to match our vector data.
@@ -593,5 +584,81 @@ plot(is_areas_rst)
 # Does this makes sense?
 is_areas_rst <- rasterize(is_areas, target,
                           field = "area")
+
+```
+# Rasters and ggplot
+So far in this tutorial we have been using base graphics to plot rasters.  When plotting rasters, base graphs are fast and easy.  Let's see how we do it with **ggplot** .
+
+There are different ways to plot a raster with **ggplot**.  The most basic one is to use *geom_raster()*.  But *geom_raster()* does not accept objects of class *raster*.  Instead, it needs a data.frame, so we need to convert our temperature raster first.
+
+```{r}
+depth <- raster("./data/Iceland_depth.tif")
+
+depth.df <- as.data.frame(depth, xy=TRUE) # Convert to data.frame, keeping the coordinates
+class(depth.df)
+head(depth.df)
+
+```
+If we only use *geom_raster()* we also need to set up the map coordinates.  On the other hand, if we add a *geom_sf()* object, it sets up the coordinates for us.
+
+
+```{r}
+coast <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/iceland_coastline.gpkg") %>%
+  st_transform(4326)
+
+
+
+p1 <-  ggplot() +
+  geom_raster(data = depth.df, aes(x = x, y = y, fill = Iceland_depth)) +
+  coord_quickmap() +
+  scale_fill_viridis_c() +
+  theme_bw()
+
+
+p2 <-  ggplot() +
+  geom_raster(data = depth.df, aes(x = x, y = y, fill = Iceland_depth)) +
+  geom_sf(data = coast) +
+  scale_fill_viridis_c() +
+  theme_bw()
+
+# Plot multiple ggplot
+library(patchwork)
+p1 + p2
+
+```
+Note that we need to specify the aesthetics (using *aes()*) including the columns with x and y coordinates, and the column with the value used as fill.
+
+Naturally, when we plot together raster and vector data, we want to plot first the raster data and then the vector layers on top. But we need to make sure that the vector data is in the same projection as the raster data.
+
+This works fine as long as the raster is not too big.  But "real" rasters may have millions of cells.  **ggplot** will plot each one, and the plot will take a long time to render.  But there is no reason to plot too many cells, because computer monitors have a limited resolution.  A smarter approach is to sub-sample the raster.  One way to do this is to use the *layer_spatial()* function in the **ggspatial** package:
+
+
+```{r}
+library(ggspatial)
+
+ggplot()+
+  layer_spatial(depth, interpolate=FALSE) +
+  geom_sf(data = coast) +
+  scale_fill_viridis_c() +
+  theme_bw()
+
+```
+Note that *layer_spatial()* can accept the raster object directly.
+
+# The **stars** package
+Very recently, the **stars** package was released.  It is not intended to replace **raster**, but it can read and display rasters very efficiently (and plays well with the tidyverse.)
+
+
+Another way to load and plot large rasters with relative ease is to use *geom_stars()* function that can be used with ggplot.
+
+```{r}
+library(stars)
+
+depth.st <- st_as_stars(depth)
+
+ggplot() +
+  geom_stars(data = depth.st) +
+  geom_sf(data = coast) +
+  scale_fill_viridis_c()
 
 ```
