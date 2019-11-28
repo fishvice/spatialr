@@ -173,7 +173,9 @@ int <- interpolate(target, gs) %>%
 plot(int)
 
 ```
+
 # Kriging
+
 Here we will do a simple demonstration of krigng, a widely used geostatistical interpolation technique.
 
 First let's compute the variogram, which is a model of how the observed data differ as a function of the distance (and possibly other variables).
