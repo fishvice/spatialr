@@ -1,0 +1,252 @@
+---
+title: "Interpolation"
+output:
+  html_document:
+    fig_height: 4
+    fig_width: 9
+    highlight: haddock
+    theme: united
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+
+**Needed libraries**:
+```{r setup}
+library(tidyverse)  
+library(sf)
+library(patchwork)
+library(stars)
+library(raster)
+library(gstat)
+
+```
+
+# Interpolation
+An interpolation is the process in which we take observations of some parameter data to predict it value in unsampled locations.  Very often this is done to convert point observations in some type of continuous distribution, usually a raster.
+
+Any interpolation is a model.  Sometimes the model is very simple and is only based on the distance between the observed and predicted locations (e.g. inverse distance weighted interpolation).  Other times the models are more complex (e.g. geostatistical models, spatial splines) and may incorporate covariates (e.g. depth, temperature).
+
+Let's interpolate some cod data from the Icelandic bottom trawl survey.  First, lets make an *sf* object with POINT geometry using the survey data from 2018.
+
+```{r, warnings=FALSE }
+biol <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_biological.csv") %>%
+  filter(species == "cod")
+
+cod <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_stations.csv") %>%
+  filter(year == 2018) %>%
+  left_join(biol, by = "id") %>%
+  mutate(kg = replace_na(kg, 0)) %>% 
+  dplyr::select(id, lon1, lat1, kg, n, duration) %>%
+  st_as_sf(coords = c("lon1", "lat1"), crs = 4326) %>%
+  st_transform(3395) # Mercator
+
+iceland <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/iceland_coastline.gpkg") %>%
+  st_transform(3395)
+
+
+```
+A quick look at the data:
+
+```{r }
+p1 <- ggplot() +
+  geom_sf(data = cod, aes(size = kg), alpha = 0.3, color = "red", show.legend = "point")
+
+p2 <- ggplot() +
+  geom_histogram(data = cod, aes(x = kg))
+
+library(patchwork)
+p1 + p2
+
+
+```
+
+# Proximity polygons (aka Voronoi tesselation)
+A simple way to do an interpolation is to use Voronoi polygons.  Each polygon includes all locations that are closest to the included point than to any other point
+
+We can simply assume then that the values of our interpolation variable (cod abundance in our case) are constant in each polygon and equal to the included point.
+
+
+```{r }
+pts <- cod %>%
+  st_combine() # To make a MULTIPOINT... but we loose the attributes
+
+chull <- st_convex_hull(pts) %>%
+  st_buffer(10000) %>%
+  st_geometry() %>%
+  st_difference(iceland)
+
+# What happens if we get a convex hull of the cod POINT object?
+
+vor <- st_voronoi(pts) %>%
+  st_collection_extract() %>%
+  st_intersection(chull)
+
+# Spatial join with the cod POINT object
+
+vor <- vor %>%
+  st_as_sf() %>%
+  st_join(cod)
+
+ggplot() +
+  geom_sf(data = vor, aes(fill = kg)) +
+  geom_sf(data = cod, col = "red", size = .5) +
+  scale_fill_viridis_c(trans = "log1p")
+
+```
+We can rasterize the polygons if needed.
+
+```{r }
+ext <- extent(st_bbox(vor)[c(1, 3, 2, 4)])
+crs <- st_crs(vor)[[2]]
+
+vor.sp <- as_Spatial(vor)
+
+target <- raster(ext = ext, crs = crs, res = 1000)
+
+vor_rst <- rasterize(vor.sp, target, field = "kg")
+
+plot(vor_rst)
+
+```
+
+# Nearest neighbour interpolation
+The **gstats** provides several methods for interpolation.  One of the simplest one is the NN interpolation.  Here for each cell in the target raster we take the 4 closest datapoints.  With *idp=0* we indicate that the distance is not taken into account.
+
+```{r }
+gs <- gstat(formula = kg ~ 1, data = cod,
+            nmax = 4, set = list(idp = 0))
+
+int <- interpolate(target, gs)
+plot(int)
+
+```
+Clearly we are interpolating to all the cell in the raster.  Probably we want to remove locations in land, and locations to far away from sampling locations.  One way to do this is to apply a mask.
+
+```{r }
+chull_mask <- rasterize(as_Spatial(chull), target)
+plot(chull_mask)
+
+int <- mask(int, chull_mask)
+plot(int)
+```
+
+# Inverse distance weighting (IDW)
+Here the prediction in each cell is the weighted average of all observations.  Weights are computed according to their distance to the interpolation location, elevated to a negative parameter *p* given by the *idp* argument.
+
+Greater *p* values give more influence to the points that are closer.
+
+- idp = 2.5 is the default value.
+- If idp=0 (as above), all weights are equal to 1.  If we use all points, we predict the same value everywhere (the mean).
+
+```{r }
+gs <- gstat(formula = kg ~ 1, data = cod,
+            set = list(idp = 2.5))
+int <- interpolate(target, gs) %>%
+  mask(chull_mask)
+
+plot(int)
+
+
+gs <- gstat(formula = kg ~ 1, data = cod,
+            set = list(idp = 5))
+int <- interpolate(target, gs) %>%
+  mask(chull_mask)
+
+plot(int)
+
+
+```
+If we only use the closest neighbour, we obtain the Voronoi polygons:
+
+
+```{r }
+gs <- gstat(formula=kg~1, data = cod, nmax=1, set=list(idp=1))
+int <- interpolate(target, gs) %>%
+  mask(chull_mask)
+
+plot(int)
+
+```
+# Kriging
+Here we will do a simple demonstration of krigng, a widely used geostatistical interpolation technique.
+
+First let's compute the variogram, which is a model of how the observed data differ as a function of the distance (and possibly other variables).
+
+```{r }
+ggplot() +
+  geom_histogram(data = cod, aes(x = kg))
+
+# ...very skewed.  Let's interpolate in log scale'
+
+# Experimental variogram
+vg.exp <- variogram(log1p(kg) ~ 1, data = cod)
+
+# Variogram model
+vg.model <- vgm(model = "Exp", psill = 2,
+                range = 2e5)
+
+# Model fit
+vg.fit <- fit.variogram(vg.exp, vg.model)
+
+plot(vg.exp, vg.fit)
+
+```
+Now let's do the kriging.
+
+
+```{r }
+# Let's not interpolate too far away from our sampling sites
+
+cod_buf <- st_buffer(cod, 50000) %>%
+  st_union() %>%
+  nngeo::st_remove_holes() %>%
+  st_as_sf()
+
+ggplot() +
+  geom_sf(data = cod_buf) +
+  geom_sf(data = iceland, fill = "darkgray") +
+  geom_sf(data = cod, color = "red") +
+  theme_bw()
+
+
+# Make an empty raster
+
+proj <- st_crs(cod)[[2]]
+
+target <- raster(xmn = -3080000,
+                 xmx = -1130000,
+                 ymn = 9000000,
+                 ymx = 10260000,
+                 res = 5000,
+                 crs = proj)
+
+mask1 <- rasterize(cod_buf, target)
+mask2 <- rasterize(iceland, target)
+
+mask1[mask2 == 1] <- NA
+
+# Create a gstat object
+model <- gstat(formula = log1p(kg) ~ 1, data = cod,
+               model = vg.fit)
+
+kriged <- interpolate(target, model = model)
+
+kriged <- mask(kriged, mask1) # Apply the mask
+
+kriged <- expm1(kriged) # Because we modeled in log scale
+
+
+ggplot() +
+  geom_stars(data = st_as_stars(kriged)) +
+  geom_sf(data = iceland) +
+  scale_fill_viridis_c(trans = "log")
+
+
+
+```
