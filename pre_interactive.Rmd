@@ -16,21 +16,15 @@ output:
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-TODO:
-
-* May need a specific section/presentation on colors
-* Fix read_ices_shapes function
-
-
-#### Needed libraries for this tutorial:
 
 ```{r setup}
-library(maps)
+library(rnaturalearth)
 library(sf)
 library(htmltools)
 library(leaflet)
 library(tidyverse)
 ```
+
 
 ```{r, echo = FALSE}
 theme_set(theme_grey(base_size = 16))
@@ -43,7 +37,6 @@ cl = function(x, color = "blue"){
   else
     x
 }
-
 ```
 
 In recent years there has been a proliferation of packages that allow one to generate JavaScript applications using R syntax and data. The interactive visualizations can be used in rmarkdown reports, presentations, Shiny applications or as standalone webpages.
@@ -53,6 +46,7 @@ ___
 
 ### Introduction
 
+[Package homepage](https://rstudio.github.io/leaflet)
 
 #### The basic construct
 
@@ -106,11 +100,28 @@ minke <-
 A simple plot of the sample locations can be obtained by using the `r cl("addCircles")`-function:
 
 ```{r, fig.height = 3, fig.width = 4}
-minke %>% 
-  leaflet() %>% 
+leaflet() %>% 
   addTiles() %>% 
-  addCircles(lng = ~lon,
+  addCircles(data = minke,
+             lng = ~lon,
              lat = ~lat,
+             radius = 10000)  # radius in meters
+```
+
+If the object is an **sf**-object:
+```{r}
+minke.sf <- 
+  minke %>% 
+  st_as_sf(coords = c("lon", "lat"),
+           crs = 4326)
+```
+
+we do not need to specify the xy-coordinates in the function call:
+```{r, eval = FALSE}
+# NOT RUN
+leaflet() %>% 
+  addTiles() %>% 
+  addCircles(data = minke.sf,
              radius = 10000)  # radius in meters
 ```
 
@@ -159,23 +170,19 @@ Emulate the following plot where:
 As usual it is best to read the help-file and/or check what are the arguments for the `r cl("addCirles")`-function (call args(addCircle)).
 
 ```{r, fig.height = 3, fig.width = 4, echo = FALSE}
-minke %>% 
-  leaflet() %>% 
+leaflet() %>% 
   addTiles() %>% 
-  addCircles(lng = ~lon,
-             lat = ~lat,
+  addCircles(data = minke.sf,
              radius = ~stomach.volume * 250,
-             #popup = ~sex,
              label = ~sex,
              color = "red",
              weight = 0)
 ```
 
-[solution]()
 </div>
 </div>
 
-#### Colours - introduction
+#### Mapping variables to colours
 
 Lets try to distinguish the samples by sex using the argument color. A spoiled ggplot-user may try this:
 
@@ -262,9 +269,6 @@ Note however that one needs to specify explicitly the "domain" within the `r cl(
 
 ### Basemaps
 
-TODO: Find a nice global bottom depth shaded relief map, preferably in grey-tone scale.
-
-
 
 The `r cl("addTiles")`-function provides a reference background to spatial maps, the default being [openstreetmap](https://www.openstreetmap.org)-tiles. That background may not be the most suitable for oceanographic data we are most likely confronted with. The `r cl("addProviderTiles")`-function provides a quick access to some free third-party basemaps that are encapsulated in the "providers"-list, a data object in the leaflet-package. 
 
@@ -288,9 +292,7 @@ m %>% addProviderTiles(providers$Esri.OceanBasemap)
 
 Some recent maps tiles of potential use as backgrounds for marine data can be found on [NOAA map homepage](https://noaa.maps.arcgis.com/home). Example for calling these tiles are:
 
-```{r, eval = FALSE}
-# NOT RUN
-
+```{r}
 # Create a function, just a wrapper around a long url
 addTiles_noaa2 <- function(map) {
   map %>%
@@ -306,17 +308,10 @@ m %>%
   addTiles_noaa3()
 ```
 
-```{r, echo = FALSE, eval = FALSE}
-# Not responding
-#addTiles_noaa1 <- function(map) {
-#  map %>% 
-#    addTiles(url = "https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_global_mosaic_hillshade/ImageServer/tile/{z}/{y}/{x}")
-#}
-```
-
 #### Own tiles - and layer control
 
 If one has access to a server one could even attempt to provide ones own tiles, like this bottom topography shaded relief map:
+
 ```{r, fig.height = 4}
 m <- 
   m %>% 
@@ -339,15 +334,19 @@ The above script includes some options, here the minimum and the maximum zoom of
 ```{r}
 m %>% 
   addLayersControl(overlayGroups = c("World Image", "Crowd sourced (Olex)", "MRI multibeam"),
-                   options = layersControlOptions(collapsed = FALSE))
+                   options = layersControlOptions(collapsed = FALSE)) %>% 
+  setView(lng = -19, lat = 65, zoom = 5)
 ```
 
-#### No tiles
+### Polygons
 
-One can skip the call to background tiles and provide ones own reference background:
 
 ```{r, fig.height = 3, fig.width = 4}
-iceland <- maps::map("world", region = "Iceland", plot = FALSE)
+iceland <- 
+  ne_countries(country = "Iceland",
+               scale = 10,
+               returnclass = "sf")
+class(iceland)
 
 leaflet() %>% 
   addPolygons(data = iceland,
@@ -356,147 +355,15 @@ leaflet() %>%
   addCircles(data = minke)
 ```
 
-This may often be the best option, because colourful background may create a distraction from the main data that supposedly contains the message for the reader.
+Note that in the above no call was made to background tile. This may often be the best option, because colourful background may create a distraction from the main data that supposedly contains the message for the reader.
 
+### Lines
 
-<div class="panel panel-info">
-<div class="panel-heading">Exercise</div>
-<div class="panel-body">
+Lets take the cruise track from the Icelandic spring survey in 2019 as an example.
 
-Use the minke data, or any other data of your liking and experiment with various basemaps of choice. Give some thought on:
-
-* The use of colours for the data, given the different backgrounds chosen.
-* What backgrounds are useful vs those that act as a distraction from the message you are trying to convey.
-
-</div>
-</div>
-
-
-### Polygons and lines
-
-
-```{r}
-hh <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/datras/nsibts_hh.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-hl <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/datras/nsibts_hl.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-
-# some common species
-mysp <- c("Scomber scombrus")
-hh %>% 
-  filter(year == 2019) %>% 
-  select(id, lon = shootlong, lat = shootlat) %>% 
-  left_join(hl %>% filter(latin == mysp)) %>% 
-  group_by(id, lon, lat) %>% 
-  summarise(n = sum(n, na.rm = TRUE)) %>% 
-  mutate(nr = ifelse(n > 1000, 1000, n)) %>% 
-  st_as_sf(coords = c("lon", "lat"),
-           crs = 4326) %>% 
-  leaflet() %>% 
-  addTiles() %>% 
-  addCircles(radius = 1000,
-             color = "blue",
-             weight = 0,
-             fillOpacity = 1) %>% 
-  addCircles(radius = ~nr * 100,
-             label = ~as.character(round(n)),
-             weight = 0,
-             color = "red")
-
-```
-
-
-
-Lets use the ICES ecoregions as an example demonstrating polygons
-
-```{r, fig.width = 5}
-egos <- 
-  read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg")
-leaflet(egos) %>%
-  addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
-              opacity = 1.0, fillOpacity = 0.5,
-              fillColor = ~colorQuantile("YlOrRd", area_km2)(area_km2),
-              highlightOptions = highlightOptions(color = "white", weight = 2,
-                                                  bringToFront = TRUE))
-```
-
-
-```{r eval = FALSE, echo = FALSE}
-# some trials on colours
-leaflet(egos) %>%
-  addPolygons(color = ~colorQuantile("YlOrRd", area_km2)(area_km2),
-              #color = "#444444", 
-              weight = 1, 
-              smoothFactor = 0.5,
-              opacity = 1.0,
-              fillOpacity = 1.0)
-
-leaflet(egos) %>%
-  addPolygons(color = ~colorFactor("viridis", ecoregion)(ecoregion),
-              #color = "#444444", 
-              weight = 1, 
-              smoothFactor = 0.5,
-              opacity = 1.0,
-              fillOpacity = 1.0)
-
-mycol <- sf.colors(n = 17)
-
-m <-
-  leaflet(egos) %>%
-  addPolygons(color = mycol,
-              #color = "#444444", 
-              weight = 1, 
-              smoothFactor = 0.5,
-              opacity = 1.0,
-              fillOpacity = 1.0)
-
-m %>% 
-  addLegend(colors = mycol,
-            labels = egos$ecoregion,
-            opacity = 1)
-
-
-library(colourvalues)
-col <- colour_values(egos$area_km2)
-
-leaflet(egos) %>%
-  addPolygons(fillColor = col,
-              #fillColor = ~colorQuantile("YlOrRd", shape_area)(shape_area),
-              label = ~ecoregion,
-              color = "black",
-              weight = 1,
-              smoothFactor = 0.5,
-              opacity = 1.0,
-              fillOpacity = 0.5,
-              highlightOptions = highlightOptions(color = "white",
-                                                  weight = 2,
-                                                  bringToFront = TRUE)) %>% 
-  addLegend("bottomright", color = ~col, labels = ~egos$area_km2,
-            title = "Egos",
-            opacity = 1)
-
-
-?colour_values
-
-pal <- colorQuantile("YlOrRd", egos$area_km2)
-
-
-
-```
-
-
-### Case example
-
-
-
-Lets take the [cruise tracks](datasets_overview.html# trail) from the 2019 pelagic mackerel survey.
 ```{r}
 trail <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_trail.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble() %>% 
   st_as_sf(coords = c("lon", "lat"),
@@ -513,39 +380,39 @@ pal <-
               domain = trail$vessel)
 trail %>% 
   leaflet() %>% 
-  addTiles() %>% 
+  addTiles_noaa2() %>% 
   addPolylines(#data = trail,
     color = ~pal(vessel),
+    group = ~vessel,
     opacity = 1,
     weight = 3) %>% 
   addLegend("bottomleft",
             title  = 'Vessels',
             pal = pal,
-            values = ~vessel)
-
+            values = ~vessel) %>% 
+  addLayersControl(overlayGroups = c(trail$vessel),
+                   options = layersControlOptions(collapsed = FALSE))
 ```
 
 ### Line-segments
 
+Lets use all the tows in the DATRAS database from 2018 as and example:
+
 ```{r}
 hh <- 
-  read.csv("ftp://ftp.hafro.is/pub/reiknid/einar/data/datras/hh_datras.csv",
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_haul.csv",
            stringsAsFactors = FALSE) %>% 
-  as_tibble() %>% 
-  filter(year == 2018)
+  as_tibble() 
 hh %>% 
   mutate(id = paste(id = paste0(survey, "_", id))) %>% 
-  select(id, 
-         #survey, quarter,
+  select(id,
          lon_start = shootlong,
          lat_start = shootlat,
          lon_end = haullong,
          lat_end = haullat) %>% 
   pivot_longer(-id, 
                names_to = c(".value", "action"), 
-               names_sep = "_"#, 
-               #values_drop_na = TRUE
-  ) %>% 
+               names_sep = "_") %>% 
   st_as_sf(coords = c("lon", "lat"),
            crs = 4326) %>% 
   group_by(id) %>% 
@@ -554,94 +421,102 @@ hh %>%
   leaflet() %>% 
   addTiles() %>% 
   addPolylines(weight = 3,
-               opacity = 1)
+               opacity = 1,
+               label = ~id)
 ```
 
 
-## Case examples
 
-### Vessel trails of the 2019 Nordic pelagic survey
+<div class="panel panel-info">
+<div class="panel-heading">Exercise</div>
+<div class="panel-body">
+
+Use the data of your liking and experiment with various basemaps of choice. Give some thought on:
+
+* The use of colours for the data, given the different backgrounds chosen.
+* What backgrounds are useful vs those that act as a distraction from the message you are trying to convey.
+
+
+</div>
+</div>
+
+### Multiple layers
+
+Example is the abundance mackerel from the DATRAS 2018 survey plotted over ecoregions.
 
 ```{r}
-strata <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_strata.csv",
+egos <- 
+  read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg")
+hl <- 
+  read.csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_length.csv",
            stringsAsFactors = FALSE) %>% 
   as_tibble()
 
-strata.sf <-
-  strata %>% 
+# some common species
+mysp <- c("Scomber scombrus")
+hh %>% 
+  select(id, lon = shootlong, lat = shootlat) %>% 
+  left_join(hl %>% filter(latin == mysp)) %>% 
+  group_by(id, lon, lat) %>% 
+  summarise(n = sum(n, na.rm = TRUE)) %>% 
+  mutate(nr = ifelse(n > 1000, 1000, n)) %>% 
   st_as_sf(coords = c("lon", "lat"),
            crs = 4326) %>% 
-  group_by(strata) %>% 
-  summarise(do_union = FALSE) %>% 
-  st_cast("LINESTRING") %>% 
-  st_cast("POLYGON")
-
-trail <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_trail.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble()
-trail.sf <-
-  trail %>% 
-  st_as_sf(coords = c("lon", "lat"),
-           crs = 4326) %>% 
-  group_by(vessel) %>% 
-  summarise(do_union = FALSE) %>% 
-  st_cast("LINESTRING") #%>% 
-#mutate(vessel = as.factor(vessel))
-
-tows <- 
-  read.csv("ftp://ftp.hafro.is/pub/data/csv/iessns2019_tows.csv",
-           stringsAsFactors = FALSE) %>% 
-  as_tibble() %>% 
-  st_as_sf(coords = c("lon", "lat"),
-           crs = 4326)
-
-pal <- 
-  colorFactor(palette = c('cyan', "green", "red", "yellow", "orange", "pink"),
-              domain = trail.sf$vessel)
-
-RColorBrewer::display.brewer.pal(5, "Set1")
-pal <- RColorBrewer::brewer.pal(5, "Set1")
-pal <-
-  colorFactor(palette = "Set1",
-              domain = trail.sf$vessel)
-pal <-
-  colorFactor(palette = RColorBrewer::brewer.pal(n = 5, name = "Set1"),
-              domain = trail.sf$vessel)
-
-leaflet() %>% 
-  addProviderTiles(providers$CartoDB.Positron) %>% 
-  addPolygons(data = strata.sf,
-              color = "blue",
-              weight = 1) %>% 
-  addCircleMarkers(data = tows,
-                   color = "white",
-                   radius = 10) %>% 
-  addPolylines(data = trail.sf,
-               color = ~pal(vessel))
-
+  leaflet() %>% 
+  addTiles() %>% 
+  addPolygons(data = egos,
+              color = ~colorFactor("viridis", ecoregion)(ecoregion),
+              weight = 1, 
+              group = ~ecoregion,
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 0.3) %>% 
+  addCircles(radius = 1000,
+             color = "blue",
+             weight = 0,
+             fillOpacity = 1) %>% 
+  addCircles(radius = ~nr * 100,
+             label = ~as.character(round(n)),
+             weight = 0,
+             color = "red") %>% 
+  addLayersControl(overlayGroups = c(egos$ecoregion))
 ```
 
-### VMS raster image
+### Raster image
 
 ```{r}
 nephrops  <- raster::raster("ftp://ftp.hafro.is/pub/data/rasters/nephrops.tif")
 inf <- viridis::inferno(12, alpha = 1, begin = 0, end = 1, direction = -1)
 pal <- leaflet::colorNumeric(inf, raster::values(nephrops), na.color = "transparent")
-leaflet() %>%
-  setView(lng = -19, lat = 65, zoom = 6) %>%
+r <- 
+  leaflet() %>%
+  setView(lng = -15, lat = 64, zoom = 7) %>%
   addProviderTiles(providers$Esri.WorldImagery) %>% 
   addRasterImage(nephrops, colors = pal, opacity = 1, group = "Nephrops trawl",
                  maxBytes = Inf)
+r
+```
+
+[The real thing](https://heima.hafro.is/~einarhj/vms2)
+
+### Saving as html
+
+```{r, eval = FALSE}
+library(htmltools)
+saveWidget(r, "nephrops.html")
 ```
 
 ### VMS ICES
 
-```{r}
-d <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/OSPAR_intensity_Otter_2015.gpkg")
+The following is available on somewhere on ices.dk (I lost the link):
 
+```{r}
+d <- 
+  read_sf("ftp://ftp.hafro.is/pub/data/shapes/OSPAR_intensity_Otter_2015.gpkg")
+glimpse(d)
 ```
+
+The data contains among other things the 2018 fishing hours of Otter trawls using a 0.05 x 0.05 decimal degree grid
 
 ```{r, eval = FALSE}
 # NOTRUN: This is a bit too much for leaflet
@@ -654,51 +529,57 @@ leaflet() %>%
               fillOpacity = 1)
 ```
 
-```{r, echo = FALSE}
-key <- key <- "pk.eyJ1IjoiZmlzaHZpY2UiLCJhIjoiY2p0MXQ5dThpMDZqeDQ5bHM0MGx4dHI5cyJ9.Fed_z7mv_TgTWDRjiavU3A"
-```
+So lets try mapdeck:
 
+## mapdeck
+
+___
 
 
 ```{r}
 library(mapdeck)
-mapdeck(token = key) %>%
+```
+
+```{r, echo = FALSE}
+key <- "pk.eyJ1IjoiZmlzaHZpY2UiLCJhIjoiY2p0MXQ5dThpMDZqeDQ5bHM0MGx4dHI5cyJ9.Fed_z7mv_TgTWDRjiavU3A"
+set_token(key)
+```
+
+```{r}
+mapdeck() %>%
   add_polygon(data = d %>% 
-                filter(SurfSAR > 0) %>% 
-                mutate(SurfSAR = ifelse(SurfSAR > 10, -10, -round(SurfSAR, 1))),
-              tooltip = "SurfSAR",
-              fill_colour = "SurfSAR",
-              palette = "inferno")
+                filter(FishingH > 0) %>% 
+                mutate(FishingH = round(FishingH),
+                       FishingHc = ifelse(FishingH > 300, -300, -FishingH)),
+              tooltip = "FishingH",
+              fill_colour = "FishingHc",
+              palette = "inferno",
+              legend = TRUE)
 ```
 
+The mapdeck package points to the future of what will be do-able in R when it comes to visualizing data interactively. Below is an example of almost 1 million records of AIS/VMS-data in the first quarter of 2018. The colour indicates vessel speed, yellow being high (cruising) and darker meaning slower speed.
 
-
-```{r, eval = FALSE}
-
-
-(pal <- colorNumeric(c("red", "green", "blue"), 1:10))
-pal(c(1,6,9))
-pal(c(11))
-leaflet::colorNumeric
-countries <- readOGR("json/countries.geojson", "OGRGeoJSON")
-
-
-url <- "https://raw.githubusercontent.com/rstudio/leaflet/gh-pages/json/countries.geojson"
-library(rgdal)
-countries <- read_sf(url)
-
-map <- leaflet(countries)
-countries %>% 
-  ggplot() +
-  geom_histogram(aes(gdp_md_est))
-
-qpal <- colorQuantile("Blues", countries$gdp_md_est, n = 7)
-map %>%
-  addPolygons(stroke = FALSE, smoothFactor = 0.2, fillOpacity = 1,
-              color = ~qpal(gdp_md_est)) %>% 
-  addLegend("bottomright", pal = qpal, values = ~gdp_md_est,
-            title = "Est. GDP (2010)",
-            labFormat = labelFormat(prefix = "$"),
-            opacity = 1)
+```{r}
+vms <- 
+  read_rds("/net/hafkaldi/export/home/haf/einarhj/prj2/vms/2019_ices-datacall/dataIS/is_vms_visir2018.rds") %>% 
+  filter(!is.na(mobileid),
+         lubridate::month(time)  <= 3) %>% 
+  mutate(speed = ifelse(speed > 10, 10, speed)) 
+glimpse(vms)
+m <- 
+  vms %>% 
+  mapdeck() %>% 
+  add_scatterplot(fill_colour = "speed",
+                  palette = "inferno")
+m
 ```
 
+Rudimentary [mapdeck documents](https://symbolixau.github.io/mapdeck/articles/mapdeck.html)
+
+## Other packages
+
+Among the many:
+
+* [mapview](https://r-spatial.github.io/mapview)
+* [mapedit](https://www.r-spatial.org/r/2017/06/09/mapedit_0-2-0.html)
+* ...
