@@ -34,7 +34,7 @@ Any interpolation is a model.  Sometimes the model is very simple and is only ba
 
 Let's interpolate some cod data from the Icelandic bottom trawl survey.  First, lets make an *sf* object with POINT geometry using the survey data from 2018.
 
-```{r, warnings=FALSE }
+```{r}
 biol <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_biological.csv") %>%
   filter(species == "cod")
 
@@ -176,9 +176,51 @@ plot(int)
 
 # Kriging
 
-Here we will do a simple demonstration of krigng, a widely used geostatistical interpolation technique.
+Here we will do a simple demonstration of kriging, a widely used geostatistical interpolation technique.
 
-First let's compute the variogram, which is a model of how the observed data differ as a function of the distance (and possibly other variables).
+First let's load our data...
+
+```{r}
+biol <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_biological.csv") %>%
+  filter(species == "cod")
+
+cod <- read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_stations.csv") %>%
+  filter(year == 2018) %>%
+  left_join(biol, by = "id") %>%
+  mutate(kg = replace_na(kg, 0)) %>%
+  dplyr::select(id, lon1, lat1, kg, n, duration) %>%
+  st_as_sf(coords = c("lon1", "lat1"), crs = 4326) %>%
+  st_transform(3395) # Mercator
+
+iceland <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/iceland_coastline.gpkg") %>%
+  st_transform(3395)
+
+
+```
+
+and create our mask:
+
+```{r }
+pts <- cod %>%
+  st_combine() # To make a MULTIPOINT... but we loose the attributes
+
+chull <- st_convex_hull(pts) %>%
+  st_buffer(10000) %>%
+  st_geometry() %>%
+  st_difference(iceland)
+
+target <- raster(xmn = -3040079,
+                 xmx = -1173079,
+                 ymn = 9062775,
+                 ymx = 10221775,
+                 crs = "+proj=merc",
+                 res = 1000)
+
+chull_mask <- rasterize(as_Spatial(chull), target)
+
+```
+
+Now let's compute the variogram, which is a model of how the observed data differ as a function of the distance (and possibly other variables).
 
 ```{r }
 ggplot() +
@@ -244,11 +286,47 @@ kriged <- mask(kriged, mask1) # Apply the mask
 kriged <- expm1(kriged) # Because we modeled in log scale
 
 
-ggplot() +
+g <- ggplot() +
   geom_stars(data = st_as_stars(kriged)) +
   geom_sf(data = iceland) +
   scale_fill_viridis_c(trans = "log")
 
+```
 
+# GAMs
+
+Finally, an example used Generalsed Additive Models (GAMs).
+
+```{r }
+library(mgcv)
+
+# We need the cod coordinates
+
+cod_xy <- st_coordinates(cod) %>%
+  as_tibble()
+
+cod <- bind_cols(cod, cod_xy)
+
+# Fit a GAM with a Tweedie distribution and log link
+# ... good choice for a skewed, positive distribution
+
+my.model <- gam(kg ~ s(X, Y), data = cod, family=tw(link=log))
+
+# Now lets get the coordinates for the prediction
+
+locs <- which(chull_mask[] == 1)
+
+pred.xy <- as.data.frame(xyFromCell(chull_mask, locs))
+names(pred.xy) <- c("X", "Y") # They need to match the names of the GAM model
+
+
+predicted <- predict(object = my.model,
+                     newdata = pred.xy,
+                     type = "response")
+
+predicted.rst <- raster(chull_mask) # I get an 1D array
+predicted.rst[locs] <- predicted # Put the values in the raster
+
+plot(predicted.rst)
 
 ```
