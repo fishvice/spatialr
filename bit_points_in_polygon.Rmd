@@ -1,0 +1,82 @@
+---
+title: "Geoinside: Points in polygons via sf"
+output: 
+  html_document: 
+    fig_height: 6
+    fig_width: 9
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+Lets say we have some spatial areas (polygons) and then some spatial data points. And we are interested to find the area that each point falls into. An example could be finding the ICES statistical rectangles that a set of fishing operations fall under. This problem has been solved many times, this post is only a memo to oneself how this is done using functions in the sf-package using the tidyverse approach.
+
+### Needed libraries
+
+```{r}
+library(sf)
+library(tidyverse)
+```
+
+### A generic case from scratch
+
+Lets start with from scatch creating some 4 rectangle polygons and then a bunch of coordinates representing e.g. fishing haul location which we want to “assign” to each of the four rectangles. More details are provided below, but the final code-flow would be something like:
+
+```{r}
+# Generate the 4 rectangles:
+icesr <- 
+  data_frame(Rectangle = c(rep("58C2", 5), rep("58C1", 5), rep("57C2", 5), rep("57C1", 5)),
+             lon = c( -28,  -28,  -27,  -27, -28,
+                      -29,  -29,  -28,  -28, -27,
+                      -28,  -28,  -27,  -27, -28,
+                      -29,  -29,  -28,  -28, -27),
+             lat = c(64.5, 65.0, 65.0, 64.5, 64.5,
+                     64.5, 65.0, 65.0, 64.5, 64.5,
+                     64.0, 64.5, 64.5, 64.0, 64.0,
+                     64.0, 64.5, 64.5, 64.0, 64.0)) %>% 
+  # Generate simple feature POINTS
+  st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>% 
+  # Convert to sf MULTIPOINTS, "conditional" on variable Rectangle 
+  group_by(Rectangle) %>% 
+  summarise(do_union = FALSE) %>% 
+  # Convert MULTIPOINTS to POLYGON
+  st_cast("POLYGON")
+
+# Generate some random (fishing haul) location
+n <- 100
+set.seed(314)
+haul_location <- 
+  data_frame(tow = 1:n,
+             lon = runif(n, -29.1, -26.9),
+             lat = runif(n,  63.9,  65.1)) %>% 
+  # here want to keep the lon and the lat as attributes
+  mutate(x = lon,
+         y = lat) %>% 
+  st_as_sf(coords = c("x", "y"),
+           crs = 4326)
+
+# Spatial joining
+haul_location <- 
+  haul_location %>% 
+  st_join(icesr["Rectangle"])
+
+# Visualize
+ggplot() +
+  geom_point(data = haul_location, aes(lon, lat, colour = Rectangle)) +
+  geom_sf(data = icesr, alpha = 0.2, aes(fill = Rectangle)) +
+  scale_fill_discrete(guide = FALSE) +
+  labs(x = NULL, y = NULL)
+```
+
+### The final haul data:
+
+```{r}
+haul_location
+```
+
+
+I.e. within the haul dataframe the added variable “Rectangle” that each haul falls under. Hauls that are not within any of the four rectangles will have a missing (NA) rectangle variable name.
+
+

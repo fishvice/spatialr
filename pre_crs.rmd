@@ -157,27 +157,23 @@ In most cases we use the *st_transform()* function to project sf objects.  This 
 
 
 ```{r }
-
 europe <- ne_countries (returnclass = "sf", continent = "Europe")  %>%
   st_geometry()
 
 # Transform to the Mollweide projection
 europe_moll <- europe %>% st_transform("+proj=moll")
 
-europe_moll <- europe %>% st_transform("+proj=moll")
 
 plot(europe, axes = TRUE)
 plot(europe_moll, axes = TRUE)
 
 st_crs(europe)
 st_crs(europe_moll)
-
 ```
 
 Additional projections are available using the *st_transform_proj()* in the **lwgeom** package.  The lwgeom package provides bindings to the liblwgeom library (part of the PostGis).
 
 ```{r }
-
 europe_win <- lwgeom::st_transform_proj(europe, "+proj=wintri")
 
 plot(europe_win, axes = TRUE)
@@ -186,7 +182,6 @@ plot(europe_win, axes = TRUE)
 We can modify the projections by passing the required parameters.  For example:
 
 ```{r }
-
 # Centred in Paris
 europe_laea1 <- st_transform(europe,
                             crs = "+proj=laea +lon_0=-2.35 +lat_48.8")
@@ -206,8 +201,7 @@ One of the advantages of using the *sf* objects is that we can utilise the *geom
 
 
 Let's load two *sf* objects with different CRS's.:
-```{r }
-
+```{r}
 coast <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/iceland_coastline.gpkg")
 st_crs(coast)
 
@@ -215,6 +209,7 @@ depth <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/iceland_contours.gpkg")
 st_crs(depth)
 
 ```
+
 Note the differences:
 
 ```{r }
@@ -231,6 +226,33 @@ ggplot() +
   geom_sf(data = depth) +
   geom_sf(data = coast, fill = "darkgray") +
   coord_sf(crs = 4087) # World Equidistant Cylindrical projection
-
-
 ```
+
+Here 1 degree north is the same as 1 degrees longitude.
+
+The different Europe projections above via ggplot
+
+```{r}
+p1 <- 
+  ggplot() +
+  geom_sf(data = europe) +
+  ggtitle("longlat")
+p2 <-
+  ggplot() +
+  geom_sf(data = europe_moll) +
+  ggtitle("moll")
+p3 <-
+  ggplot() +
+  geom_sf(data = europe_laea1) +
+  ggtitle("Center Paris")
+p4 <- 
+  ggplot() +
+  geom_sf(data = europe_laea2) +
+  ggtitle("Center Moscow")
+```
+
+```{r, fig.height = 7, echo = FALSE}
+library(patchwork)
+p1 + p2 + p3 + p4
+```
+

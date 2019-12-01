@@ -1,0 +1,48 @@
+---
+title: "Function names conflict"
+output: 
+  html_document: 
+    fig_height: 6
+    fig_width: 9
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = TRUE, warning = TRUE, error = TRUE)
+```
+
+In RStudio when we load packages into our session we may encounter same function names in different packages. Take e.g. the raster and the dplyr-package (latter part of the tidyverse):
+
+```{r, results = 'as.is', keep  = TRUE}
+library(tidyverse)
+library(raster)
+```
+
+Take careful note of the message you get when loading libraries. It may help when resolving quesitons downstream in your code.
+
+Before we do some raster work we  may first want to do some data manipulations work. E.g. select some variables in the data:
+
+```{r, results = 'as.is'}
+minke <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv")
+minke %>% 
+  select(id, lon, lat)
+```
+
+The problem here is that the select function from the dplyr-package is now masked with the select function in the raster-package. And because we loaded the raster-package after the tidyverse-packages (load among other things the dplyr-package) the call is to the function the former. To see the order of your packages you can type:
+
+```{r, results = 'as.is'}
+search()
+```
+
+Since the raster-package is in enviroment 2 and the dplyr-package in postion 6 any conflicting function name that reside in these two packages will be default be taken from the raster package.
+
+The solution is to add the package-name in front of the function:
+
+```{r}
+minke %>% 
+  dplyr::select(id, lon, lat)
+```
+
+There is a package in development (as of this writing not in R) that may also be helpful, check out [conflicted](https://conflicted.r-lib.org).
+
+

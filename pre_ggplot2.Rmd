@@ -1,6 +1,6 @@
 ---
 title: "More ggplot2"
-subtitle: "Part 2"
+subtitle: "Various tidbits"
 output:
   html_document:
     fig_height: 4
@@ -34,13 +34,11 @@ cl = function(x, color = "blue"){
 }
 ```
 
-
-
 ## Poor-man's gridding
 
 ### ICES rectangles
 
-If ICES rectangles are not part of a dataset there are some functions floating around that allows one to assign a geographical position to a rectangle. One sweep of such functions is located in the geo-package. It has been thrown off cran, mostly because improper bookkeeping of c++-functions given the latest standard. So to install it we need:
+If ICES rectangles is not a variable in your dataset there are some functions floating around that allows one to assign a geographical position to a rectangle without converting things first to an sf-object. One sweep of such functions is located in the geo-package. The package has been thrown off cran, mostly because improper bookkeeping of c++-functions given the latest standard. So to install it we need:
 
 ```{r, eval = FALSE}
 library(devtools)
@@ -61,17 +59,35 @@ minke <-
 * To get the midpoint of the ICES rectangle we use the `r cl("ir2d")`-function.
 
 ```{r}
-minke %>% 
+minke <- 
+  minke %>% 
   select(lon, lat) %>% 
   mutate(ir = d2ir(lat, lon),
          ir_lon = ir2d(ir)$lon,
-         ir_lat = ir2d(ir)$lat) %>% 
-  glimpse()
+         ir_lat = ir2d(ir)$lat) 
+minke %>% glimpse()
+```
+
+Now we can do some summary statistics by ICES rectangles (actually the mid-points of lon and lat) and visualize:
+
+```{r}
+minke.sum <- 
+  minke %>% 
+  group_by(ir_lon, ir_lat) %>% 
+  summarise(n = n()) %>% 
+  ungroup() 
+
+minke.sum %>% 
+  ggplot() +
+  geom_tile(aes(x = ir_lon, y = ir_lat, fill = n)) +
+  geom_text(aes(x = ir_lon, y = ir_lat, label = n), angle = 45, colour = "red") +
+  coord_quickmap() +
+  labs(x = NULL, y = NULL)
 ```
 
 ### Home-made gridding function
 
-It is easiest to use functions in the raster-package for setting spatial data on  a grid (see later). There are however other means, here we demonstrate using a home-made function (so use with caution).
+It is easiest to use functions in the raster-package for setting spatial data on  a grid. There are however other means, here we demonstrate using a home-made function (so use with caution).
 
 ```{r}
 #' grade
@@ -136,6 +152,8 @@ p +
                        breaks = seq(0, 1500, by = 250))
 ```
 
+Some more gritty details on poor-mans gridding can be found [here](https://heima.hafro.is/~einarhj/splatter/posts/2018-12-16-on-gridding-spatial-data)
+
 ## Mapping colours to values
 
 ### Built in transformations
@@ -184,6 +202,8 @@ p +
 
 ## Formatting axis values
 
+If you only have pure tbl-object, i.e. your object is **not** sf and/or you are **not** using the geom_sf-function) you can format the axis using these home-made functions (if there is a bug send me an e-mail):
+
 ```{r}
 # https://stackoverflow.com/questions/33302424/format-latitude-and-longitude-axis-labels-in-ggplot
 scale_longitude <- function(min = -180, max = 180, step = 1, ...) {
@@ -203,26 +223,21 @@ scale_latitude <- function(min = -90, max = 90, step = 0.5, ...) {
   return(scale_y_continuous(name = NULL, breaks = breaks, labels = labels, ...))
 }
 
-p <- 
+p1 <- 
   ggplot(geo::island, aes(lon, lat)) +
-  coord_quickmap()
-p +
   geom_path() +
+  coord_quickmap()
+p2 <-
+  p1 +
   scale_longitude(step = 2) +
   scale_latitude(step = 1)
 
-
-p +
-  geom_path() +
-  scale_x_continuous(breaks = seq(-25, -10, by = 1),
-                     labels = paste(seq(-25, -10, by = 1), "W")) +
-  scale_y_continuous(breaks = seq(63, 67, by = 0.5),
-                     labels = paste(seq(63, 67, by = 0.5), "N")) 
-  
+p1 + p2
 ```
 
 ## ICES rectangles
 
+Here is an example if you want the ICES rectangles as a label on the x- and the y-axis:
 
 ```{r}
 scale_longitude_ices <- function(min = -44, max = 68.5, step = 1, ...) {
@@ -236,12 +251,16 @@ scale_latitude_ices <- function(min = 36, max = 84.5, step = 0.5, ...) {
   return(scale_y_continuous(name = NULL, breaks = breaks, labels = labels, ...))
 }
 
-p +
+ggplot(geo::island, aes(lon, lat)) +
+  geom_path() +
+  coord_quickmap() +
   geom_path() +
   scale_longitude_ices() +
   scale_latitude_ices()
   
 ```
+
+A detailed formatting example:
 
 ```{r}
 ir <- 
@@ -251,7 +270,7 @@ ir <-
 ggplot() +
   #geom_sf(data = ir) +
   geom_path(data = geo::island, aes(lon, lat),
-            colour = "grey") +
+            colour = "black") +
   geom_text(data = ir,
             aes(x = west + 0.5, y = south + 0.25,
                 label = icesname),
@@ -266,27 +285,10 @@ ggplot() +
   coord_quickmap()
 ```
 
-## Colour scales
 
+## ggplot2 details
 
-## Scalebars and north arrow
-
-```{r}
-library(ggspatial)
-m <- 
-  ggplot() +
-  geom_polygon(data = geo::island, aes(lon, lat), fill = "grey") +
-  scale_x_continuous(NULL, NULL) +
-  scale_y_continuous(NULL, NULL) +
-  coord_quickmap()
-m +
-  annotation_scale(location = "bl", width_hint = 0.5) +
-  annotation_north_arrow(location = "bl", which_north = "true", 
-        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),
-        style = north_arrow_fancy_orienteering)
-```
-
-## datras doodle
+If you dig deep into ggplot you can set up subplot within your spatial plot, here an example that uses pure tibble-approach. What is shown is the abundance trend by year (1985-2019) of the cod in the Icelandic spring survey:
 
 ```{r}
 smb <- 
@@ -336,63 +338,4 @@ n.glyph %>%
         panel.grid.minor = element_line(size = 1),
         axis.ticks = element_blank())
 ```
-
-Standardize within rectangle (value between 0 and 1):
-
-```{r, eval = FALSE}
-by.rect.relative <- 
-  by.rect %>% 
-  group_by(ir_lon, ir_lat) %>% 
-  mutate(n = scale::rescale(n, to = c(0, 1)))
-
-
-n.glyph <-
-  by.rect.relative %>% 
-  #mutate(n = ifelse(n > 0 & n > quantile(n, 0.40), quantile(n, 0.40), n)) %>% 
-  glyphs(x_major = "ir_lon", 
-         y_major = "ir_lat",
-         x_minor = "year", 
-         y_minor = "n", 
-         width = 1, 
-         height = 0.5)
-
-
-tows <- 
-  smb %>% 
-  filter(year == 2019)
-
-n.glyph %>% 
-  mutate(pos = ifelse(n != 0, TRUE, FALSE),
-         base = ir_lat - 0.25,
-         gy = ifelse(n == 0, gy + 0.005, gy)) %>% 
-  ggplot() +
-  theme_bw() +
-  geom_linerange(aes(x = gx, ymin = base, ymax = gy),
-                 colour = "black") +
-  geom_segment(data = tows,
-                aes(x = lon1, y = lat1, xend = lon2, yend = lat2),
-                colour = "red") +
-  geom_path(data = geo::island, aes(lon, lat)) +
-  coord_quickmap() +
-  scale_longitude_ices() +
-  scale_latitude_ices() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_line(size = 1),
-        axis.ticks = element_blank())
-```
-
-
-## Arranging plot
-
-### Patchwork
-
-```{r}
-library(patchwork)
-
-```
-
-
-### Cowplot for inserts
-
-
 

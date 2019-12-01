@@ -1,0 +1,47 @@
+---
+title: "Viewing time series"
+output: 
+  html_document: 
+    fig_height: 4
+    fig_width: 9
+---
+
+This short snipped shows how to create an interactive time-series of some data. May be useful when doing quality control of vms-data.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+[dygrahp manual](https://rstudio.github.io/dygraphs)
+
+```{r}
+library(tidyverse)
+library(xts)          # time series package
+library(dygraphs)     # interactive visualization of time series
+```
+
+```{r}
+vms <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv") %>% 
+  as.data.frame()
+```
+
+convert tibble to xts-time series
+```{r}
+q <- 
+  vms %>% 
+  filter(vid == 2350) %>% 
+  group_by(time) %>% 
+  summarise(speed = mean(speed)) %>% 
+  ungroup() %>% 
+  select(time, speed) %>% 
+  as.data.frame()
+qxts <- xts(q[,-1], order.by=q[,1])
+```
+
+A dygraph of speed:
+```{r}
+dygraph(qxts) %>% dyRangeSelector()
+```
+

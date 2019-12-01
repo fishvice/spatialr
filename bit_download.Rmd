@@ -1,0 +1,41 @@
+---
+title: "Downloading data"
+output:
+  html_document:
+  fig_height: 4
+fig_width: 9
+highlight: haddock
+theme: united
+---
+
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+Here only focus on the ftp site.
+
+### Downloading
+
+```{r}
+if(!dir.exists("ftp")) {
+  dir.create("ftp")
+  dir.create("ftp/csv")
+  dir.create("ftp/shapes")
+  dir.create("ftp/rasters")
+}
+download.file("ftp://ftp.hafro.is/pub/data/csv/minke.csv",
+              destfile = "ftp/csv/minke.csv")
+download.file("ftp://ftp.hafro.is/pub/data/shapes/bormicon.gpkg",
+              destfile = "ftp/shapes/bormicon.gpkg")
+```
+
+
+### Reading from local computer
+
+Then you read in the data from within your project as:
+```{r}
+minke <- readr::read_csv("ftp/csv/minke.csv")
+bor <- sf::read_sf("ftp/shapes/bormicon.gpkg")
+```
+

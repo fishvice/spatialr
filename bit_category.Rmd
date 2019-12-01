@@ -1,0 +1,48 @@
+---
+title: "Creating class categories"
+output:
+  html_document:
+  fig_height: 4
+fig_width: 9
+highlight: haddock
+theme: united
+toc: yes
+toc_float: yes
+toc_depth: 2
+---
+
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+A question rose about how to converting a variable into categories. The question was related creating a vessel length class from a continous variable of vessel length. Here two methods are shown, one using the case_when function in dplyr the other one the base cut-function. And we length measurments in the minke dataset.
+
+```{r}
+library(tidyverse)
+d <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv")
+```
+
+```{r}
+d <- 
+  d %>% 
+  select(id, length) %>% 
+  mutate(length.class1 = case_when(length < 600 ~ "0 - 599",
+                                   length >= 600 & length < 800 ~ "600 - 800",
+                                   length >= 800 & length < 1000 ~ "800 - 1000",
+                                   TRUE ~ NA_character_),
+         length.class2 = cut(length, breaks = c(0, 600, 1000)))
+glimpse(d)
+```
+
+**visual**:
+```{r}
+d %>% 
+  group_by(length.class1) %>% 
+  count() %>% 
+  ggplot() +
+  geom_col(aes(length.class1, n)) +
+  coord_flip()
+```
+

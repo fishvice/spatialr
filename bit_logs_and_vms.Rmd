@@ -1,0 +1,232 @@
+---
+title: "Merging logbook and vms"
+output:
+  html_document:
+    fig_height: 4
+    fig_width: 9
+    highlight: haddock
+    theme: united
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(lubridate)
+library(tidyverse)
+library(sf)
+```
+
+## The problem
+
+We have two datasets:
+
+* Logbook data were each haul is a record and has:
+* start time, lets name it t1
+* end time, lets name it t2
+* VMS data were each ping is a record with at minimum geographic position (lon & lat) and time.
+
+In essence we have a time as point (the vms pings) and interval (logbook t1 to t2). As well as a points in space (lon and lat in the vms and logbooks). Ideally one should try to attempt to use both time and space to join the data, but here we will only use the time dimension.
+
+##The example dataset
+
+Lets use the Icelandic survey data as our logbook data and the vms-data from the vessels that participated in the 2019 survey.
+
+```{r}
+vms <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb_vms2019.csv") %>% 
+  arrange(vid, time)
+smb <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/is_smb.csv") %>% 
+  filter(year == 2019) %>% 
+  select(id, vid, t1, t2, lon1, lat1, lon2, lat2)
+```
+
+### In space
+
+Lets first look at the spatial dimensions, here zooming into an area:
+
+```{r, fig.height=4}
+ggplot() +
+  theme_bw() +
+  geom_segment(data = smb,
+               aes(lon1, lat1,
+                   xend = lon2, yend = lat2),
+               colour = "grey",
+               lwd = 2) +
+  geom_point(data = vms,
+             aes(lon, lat, colour = speed),
+             size = 2) +
+  scale_color_viridis_c(option = "B", direction = -1) +
+  geom_path(data = vms,
+            aes(lon, lat, group = vid),
+            colour = "grey") +
+  coord_quickmap(xlim = c(-20, -19.25),
+                 ylim = c(66.7, 66.85)) +
+  labs(x = NULL, y = NULL)
+```
+
+The plot shows:
+
+* The thick "grey" line is a line represents the shortest path between start and end position of the tow.
+* The points represents the ping observations, and the colour the vessel speed.
+* The thin grey line connects the points between pings.
+
+On a fine space-scale we observe that the spatial points in the vms and start and end points of a tow do not intersect.
+
+### By time
+
+Both datasets also have a time dimension, here we zoom into one day of the survey:
+
+```{r}
+ggplot() +
+  theme_bw() +
+  geom_rect(data = smb,
+            aes(xmin = t1, xmax = t2),
+            ymin = -Inf, ymax = Inf,
+            fill = "grey") + 
+  geom_point(data = vms, aes(time, speed), size = 1) +
+  facet_grid(vid ~ .) +
+  scale_x_datetime(limits = c(ymd_hms("2019-03-13 00:00:00"),
+                              ymd_hms("2019-03-14 00:00:00")))
+```
+
+The plot shows:
+
+* The grey area is the time between the recorded start (t1) and end (t2) of the tow.
+* The points represents the vms-ping observations, speed being indicated by the y-axis.
+
+On a finer time-scale we observe that the time in the vms and the time in the do not intersect.
+
+### More observation on the vms data
+
+```{r}
+ggplot() +
+  geom_histogram(data = vms,
+                 aes(speed))
+vms %>% 
+  group_by(vid) %>% 
+  mutate(hz = time - lag(time),
+         hz = as.numeric(hz) / 60) %>% 
+  ggplot() +
+  geom_histogram(aes(hz)) +
+  scale_x_continuous(name = "Ping frequency [mins]",
+                     lim = c(0, 15))
+```
+
+
+## Solving the problem using time
+
+Lets just take **one vessel** for now, the thinking being that at a later time one can scale the code up to deal with all the vessels. The steps we will take are:
+
+1. Transform the logbook data such time is stored as a single variable, using an additional variable (startend) to indicate the if the time value refers to the start or end of the haul.
+2. Round the vms data to the nearest minute
+3. Create a dataframe with time at **one** minute interval, going from the minimum and to the maximum time in the vms data.
+4. Join this dataframe with the vms-data
+5. Interpolate the geographical positions as well as speed and heading (an option)
+6. Bind the frame from step 5 with the logbook data and arrange by time
+7. Do some coding acrobatics to assign the tow id (from the logbooks) to vms data
+8. Interpolate again, filling in values for the logbook records
+
+### The code 
+
+```{r}
+VID <- 1131
+
+# Step 1
+smb2 <- 
+  smb %>% 
+  filter(vid == VID) %>% 
+  select(vid, id, t1, t2) %>%
+  pivot_longer(cols = c(t1, t2),
+               names_to = "startend",
+               values_to = "time") %>% 
+  arrange(vid, time) %>%
+  mutate(year = year(time))
+
+# Step 2
+vms2 <- 
+  vms %>% 
+  filter(vid == VID) %>% 
+  # make sure we have unique records
+  distinct() %>% 
+  mutate(time = round_date(time, "minutes"))
+
+
+time <- 
+  seq(from = min(vms2$time),
+      to   = max(vms2$time),
+      by   = "1 min")
+g <- 
+  # Step 3, using vector created above
+  tibble(time = time,
+         vid = VID) %>% 
+  # Step 4
+  left_join(vms2 %>% mutate(meas = TRUE),
+            by = c("time", "vid")) %>% 
+  # Step 5
+  group_by(vid) %>% 
+  mutate(y = 1:n()) %>% 
+  mutate(lon = approx(y, lon, y, method = "linear", rule = 1, f = 0, ties = mean)$y,
+         lat = approx(y, lat, y, method = "linear", rule = 1, f = 0, ties = mean)$y,
+         speed = approx(y, speed, y, method = "linear", rule = 1, f = 0, ties = mean)$y,
+         heading = approx(y, heading, y, method = "linear", rule = 1, f = 0, ties = mean)$y) %>%
+  # Step 6
+  bind_rows(smb2) %>% 
+  arrange(vid, time) %>%
+  # Step 7
+  mutate(x = case_when(startend == "t1" ~ 1,
+                       startend == "t2" ~ -1,
+                       TRUE ~ 0)) %>%
+  mutate(x = cumsum(x)) %>%
+  # fill "does too much", ...
+  fill(id) %>%
+  # hence we need do this:
+  mutate(id = ifelse(x == 1 | startend == "t2", id, NA_integer_)) %>% 
+  # Step 8
+  mutate(y = 1:n(),
+         lon = approx(y, lon, y, method = "linear", rule = 1, f = 0, ties = mean)$y,
+         lat = approx(y, lat, y, method = "linear", rule = 1, f = 0, ties = mean)$y,
+         speed = approx(y, speed, y, method = "linear", rule = 1, f = 0, ties = mean)$y,
+         heading = approx(y, heading, y, method = "linear", rule = 1, f = 0, ties = mean)$y) %>% 
+  mutate(fishing = ifelse(!is.na(id), TRUE, FALSE))
+```
+
+### The results
+
+Lets take a visual peek at what we have done:
+
+```{r, fig.height=4}
+ggplot() +
+  theme_bw() +
+  geom_segment(data = smb %>% filter(vid == VID),
+               aes(lon1, lat1,
+                   xend = lon2, yend = lat2),
+               colour = "grey",
+               lwd = 2) +
+  geom_point(data = g,
+             aes(lon, lat, colour = fishing),
+             size = 0.4) +
+  scale_color_brewer(palette = "Set1") +
+  coord_quickmap(xlim = c(-20, -19.25),
+                 ylim = c(66.7, 66.85)) +
+  labs(x = NULL, y = NULL)
+```
+
+```{r}
+ggplot() +
+  theme_bw() +
+  geom_rect(data = smb %>% filter(vid == VID),
+            aes(xmin = t1, xmax = t2),
+            ymin = -Inf, ymax = Inf,
+            fill = "grey") + 
+  geom_point(data = g, aes(time, speed, colour = fishing), size = 1) +
+  scale_color_brewer(palette = "Set1") +
+  facet_grid(vid ~ .) +
+  scale_x_datetime(limits = c(ymd_hms("2019-03-13 00:00:00"),
+                              ymd_hms("2019-03-14 00:00:00")))
+```

@@ -1,0 +1,101 @@
+---
+title: "Polygons and area size"
+output: 
+  html_document: 
+    fig_height: 6
+    fig_width: 9
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(units)
+library(sf)
+```
+
+## Preamble
+
+We have a set of Natura 2000 sites in the North Sea as polygon that overlap. The area of each polygon is known however we are interested in the total area.
+
+## Importing and some tidying
+
+```{r}
+d <- 
+  read_sf("ftp/shapes/Natura2000_Noordzee1.geojson") 
+glimpse(d)
+```
+
+**Make variable names a little more "codable" downstream**:
+```{r}
+d <-  d %>% janitor::clean_names()
+glimpse(d)
+```
+
+**More pickyness**:
+
+```{r}
+d <- 
+  d %>% 
+  select(id = sitecode,
+         name = sitename,
+         area_km2 = opp_km)
+```
+
+Sanity checks:
+```{r}
+st_is_valid(d)
+```
+
+**Check if area is correct**:
+```{r, fig.height = 7}
+d <- 
+  d %>% 
+  mutate(area = st_area(.),
+         area = units::set_units(area, km2))
+d %>% 
+  select(name, area_km2, area) %>% 
+  st_drop_geometry()
+```
+
+**hmmm, ...**:
+```{r, error = TRUE}
+ggplot() +
+  geom_sf(data = d,
+          aes(fill = area), alpha = 0.5)
+```
+
+The above could be a bug in the packages, or a bug in ones head. Quick fix:
+```{r, error = TRUE}
+ggplot() +
+  geom_sf(data = d,
+          aes(fill = as.numeric(area)), alpha = 0.5)
+```
+
+Total sum of the different polygons:
+
+```{r}
+sum(d$area)
+```
+
+## Solution
+
+But above include the overlaps. To solve that we need to:
+
+* "merge" the polgyons
+* then calculate the total area
+
+```{r}
+d.union <- 
+  d %>% 
+  st_union() 
+ggplot() +
+  geom_sf(data = d.union, alpha = 0.25, fill = "red")
+
+d.union %>% 
+  st_area() %>% 
+  set_units(km2)
+```
+

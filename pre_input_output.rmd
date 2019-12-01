@@ -14,9 +14,11 @@ output:
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
+
 Spatial data is stored in files and in spatial databases.  In this course we will focus on reading files.
 
 There is a large array of file formats for spatial data, both vector and raster data.  To get an idea, we can do this:
+
 ```{r setup}
 library(tidyverse)
 library(sf)
