@@ -122,7 +122,7 @@ ___
 * [Points in polygons](bit_points_in_polygon.html)
 * [Time series graphs - visualizing vms data](bit_time_series_graphs.html)
 * [Merging VMS and logbooks](bit_logs_and_vms.html) - solving using time
-* [Popups like video in leaflet]()
+* [Popups in leaflet](bit_leaflet_popups.html)
 
 ### Datasets used
 

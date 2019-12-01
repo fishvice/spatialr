@@ -8,6 +8,13 @@ library(rmarkdown)
 fil <- c(dir(".", pattern = "*.Rmd"), dir(".", pattern = "*.rmd"))
 fil <- fil[grep("pre_*", fil)]
 for(i in 1:length(fil)) {
-  print(fil[i])
+  print(paste(i, fil[i]))
   render(input = fil[i])
 }
+fil <- c(dir(".", pattern = "*.Rmd"), dir(".", pattern = "*.rmd"))
+fil <- fil[grep("bit_*", fil)]
+for(i in 1:length(fil)) {
+  print(paste(i, fil[i]))
+  render(input = fil[i])
+}
+

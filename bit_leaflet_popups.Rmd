@@ -1,0 +1,113 @@
+---
+title: "leaflet popups"
+output: 
+  html_document: 
+    fig_height: 4
+    fig_width: 4
+---
+
+NOTE: May only render properly in google chrome
+
+## leaflet popup examples
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, error = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(leaflet)
+library(leafpop)
+```
+
+### Tables
+
+```{r}
+minke <- read_csv("ftp://ftp.hafro.is/pub/data/csv/minke.csv")
+```
+
+#### All variables
+
+```{r}
+leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(data = minke,
+                   popup = popupTable(minke))
+```
+
+#### "Selected" variables
+
+```{r}
+leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(data = minke,
+                   popup = popupTable(minke,
+                                      zcol = c("length", "age", "sex"),
+                                      feature.id = FALSE,
+                                      row.numbers = FALSE))
+```
+
+### Images, plots and video
+
+#### Image
+
+```{r}
+img <- "https://heima.hafro.is/~einarhj/spatialr/img/participants.jpg"
+leaflet() %>% 
+  addTiles() %>% 
+  setView(lng = 12.575754, lat = 55.671455, zoom = 15) %>%
+  addCircleMarkers(12.575754, 55.671455, popup = popupImage(img, src = "remote"))
+```
+
+#### Muliple plots
+
+```{r}
+st <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_haul.csv") %>% 
+  filter(survey == "NS-IBTS") %>% 
+  select(id, lon = shootlong, lat = shootlat) %>% 
+  sample_n(size = 20)
+d <-
+  st %>% 
+  left_join(read_csv("ftp://ftp.hafro.is/pub/data/csv/datras_2018_length.csv") %>% 
+              filter(!is.na(latin)) %>% 
+              group_by(id, latin) %>% 
+              summarise(n = sum(n))) %>% 
+  group_by(id) %>% 
+  arrange(desc(n)) %>%
+  # top 10 species per station
+  slice(1:10) %>% 
+  ungroup()
+
+IDS <- unique(d$id)
+l <- list()
+for(i in 1:length(IDS)) {
+  l[[i]] <- 
+    d %>% 
+    filter(id %in% IDS[i]) %>% 
+    ggplot(aes(reorder(latin, n), n)) +
+    geom_col() +
+    coord_flip() +
+    labs(x = NULL, y = NULL)
+}
+
+st$plot <- l
+
+leaflet() %>% 
+  addTiles() %>% 
+  addCircleMarkers(data = st,
+                   lng = ~lon,
+                   lat = ~lat,
+                   popup = popupGraph(st$plot, type = "png"))
+```
+
+#### Video (gif images)
+
+```{r, fig.width = 9, fig.height = 6}
+gif <- "https://heima.hafro.is/~einarhj/spatialr/img/bardarbunga.gif"
+leaflet() %>% 
+  addTiles() %>% 
+  setView(lng = -17.5, lat = 64.5, zoom = 7) %>% 
+  addCircleMarkers(-17.5, 64.5, popup = popupImage(gif, src = "remote"))
+```
