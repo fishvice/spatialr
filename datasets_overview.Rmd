@@ -26,6 +26,10 @@ The data used as examples in the course are all stored at this location [ftp://f
 
 The content of the directory is as follows:
 
+```{r}
+fs::dir_tree("/home/ftp/pub/data/csv")
+```
+
 ```{bash, echo = FALSE, comment=NA}
 tree  /net/www/export/home/ftp/pub/data
 ```

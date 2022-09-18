@@ -196,7 +196,8 @@ And an example with two sets of polygons:
 
 ```{r }
 ier <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg") %>%
-  select(ecoregion)  # 17 polygons
+  select(ecoregion)  %>%  # 17 polygons
+  st_make_valid()
 
 ospar <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ospar.gpkg") %>%
   select(subregion)  # 50 polygons
