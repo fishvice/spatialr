@@ -35,15 +35,16 @@ Operations can also be classified as unary, binary, or n-ary, depending if they 
 #### Remember to use projected data
 - We want to get areas in m2...not square degrees!
 - For geometric operations:
-  - Make sure that they are in a *projected* crs.
-  - Make sure that all layers have the *same* crs.
+- Make sure that they are in a *projected* crs.
+- Make sure that all layers have the *same* crs.
 
 ## Extracting basic information
 **sf** has several functions to extract basic information from objects of class *sf*:
 
 ```{r }
-nfu <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/nephrops_fu.gpkg") %>%
- st_transform(3395) # Transform to World Mercator
+nfu <- 
+  read_sf("ftp://ftp.hafro.is/pub/data/shapes/nephrops_fu.gpkg") %>%
+  st_transform(3395) # Transform to World Mercator
 
 st_is_simple(nfu)
 
@@ -69,9 +70,9 @@ st_bbox(nfu) # Bounding  box
 The function **st_sample()** can be used to sample locations from polygons or linestrings.  The result is an *sfc* object with the sampled POINT geometries.
 
 ```{r }
-
-nfu <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/nephrops_fu.gpkg") %>%
- st_transform(3395) # Transform to World Mercator
+nfu <- 
+  read_sf("ftp://ftp.hafro.is/pub/data/shapes/nephrops_fu.gpkg") %>%
+  st_transform(3395) # Transform to World Mercator
 
 set.seed(100)
 pts1 <- st_sample(nfu, size = 100, type = "random")
@@ -83,7 +84,6 @@ ggplot() +
   geom_sf(data = nfu) +
   geom_sf(data = pts1, color = "red") +
   geom_sf(data = pts2, color = "blue")
-
 ```
 
 #### Centroids
@@ -124,6 +124,7 @@ ggplot() +
   geom_sf(data = buf, aes(fill = name))
 
 ```
+
 #### Convex hull
 A convex hull is the smallest convex polygon that includes a group of points.  We can use the *st_convex_hull()* function to get it, but first we need to join the POINT geometries into a single MULTIPOINT geometry.  Otherwise we get a "convex hull" for each individual point.
 
@@ -187,7 +188,8 @@ Sometimes it is necessary to simplify vector data, reducing the memory, disk spa
 
 ```{r }
 
-helcom <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/helcom.gpkg") %>%
+helcom <- 
+  read_sf("ftp://ftp.hafro.is/pub/data/shapes/helcom.gpkg") %>%
   st_transform(3395)
 
 helcom_simple <- st_simplify(helcom, dTolerance = 5000)
@@ -261,7 +263,8 @@ Aggregation involves summarising a dataset by a grouping variables, usually one 
 Let's look again to our small vms dataset:
 
 ```{r }
-vms <- read_csv("ftp://ftp.hafro.is/pub/data/csv/small_vms.csv") %>%
+vms <- 
+  read_csv("ftp://ftp.hafro.is/pub/data/csv/small_vms.csv") %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
 vms # It is geometry type POINT.
@@ -299,17 +302,20 @@ Let's aggregate the ICES ecoregions into our three groups:
 
 
 ```{r }
-ices_er <- read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg") %>%
-   mutate(zone = c(1, 2, 2, 3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1, 2)) # Add a grouping variable: 1=Arctic & subarctic, 2=North Atlantic, 3=Mediterranean & Black Sea
+ices_er <- 
+  read_sf("ftp://ftp.hafro.is/pub/data/shapes/ices_ecoregions.gpkg") %>%
+  mutate(zone = c(1, 2, 2, 3, 3, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1, 1, 2))  %>% # Add a grouping variable: 1=Arctic & subarctic, 2=North Atlantic, 3=Mediterranean & Black Sea
+  # the original object is not valid:
+  st_make_valid()
 
-ices_er_zones <- ices_er %>%
+ices_er_zones <- 
+  ices_er %>%
   group_by(zone) %>%
   summarize(area = sum(area_km2))
 
 ggplot() +
   geom_sf(data = ices_er_zones,
           aes(fill = area))
-
 ```
 
 When aggregating polygons, it is better to allow the default *do_union=TRUE* to dissolve internal boundaries.  Otherwise we get invalid polygons (and internal divisions in our plots).

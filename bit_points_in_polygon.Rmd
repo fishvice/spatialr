@@ -26,15 +26,15 @@ Lets start with from scatch creating some 4 rectangle polygons and then a bunch 
 ```{r}
 # Generate the 4 rectangles:
 icesr <- 
-  data_frame(Rectangle = c(rep("58C2", 5), rep("58C1", 5), rep("57C2", 5), rep("57C1", 5)),
-             lon = c( -28,  -28,  -27,  -27, -28,
-                      -29,  -29,  -28,  -28, -27,
-                      -28,  -28,  -27,  -27, -28,
-                      -29,  -29,  -28,  -28, -27),
-             lat = c(64.5, 65.0, 65.0, 64.5, 64.5,
-                     64.5, 65.0, 65.0, 64.5, 64.5,
-                     64.0, 64.5, 64.5, 64.0, 64.0,
-                     64.0, 64.5, 64.5, 64.0, 64.0)) %>% 
+  tibble(Rectangle = c(rep("58C2", 5), rep("58C1", 5), rep("57C2", 5), rep("57C1", 5)),
+         lon = c( -28,  -28,  -27,  -27, -28,
+                  -29,  -29,  -28,  -28, -27,
+                  -28,  -28,  -27,  -27, -28,
+                  -29,  -29,  -28,  -28, -27),
+         lat = c(64.5, 65.0, 65.0, 64.5, 64.5,
+                 64.5, 65.0, 65.0, 64.5, 64.5,
+                 64.0, 64.5, 64.5, 64.0, 64.0,
+                 64.0, 64.5, 64.5, 64.0, 64.0)) %>% 
   # Generate simple feature POINTS
   st_as_sf(coords = c("lon", "lat"),
            crs = 4326) %>% 
@@ -48,9 +48,9 @@ icesr <-
 n <- 100
 set.seed(314)
 haul_location <- 
-  data_frame(tow = 1:n,
-             lon = runif(n, -29.1, -26.9),
-             lat = runif(n,  63.9,  65.1)) %>% 
+  tibble(tow = 1:n,
+         lon = runif(n, -29.1, -26.9),
+         lat = runif(n,  63.9,  65.1)) %>% 
   # here want to keep the lon and the lat as attributes
   mutate(x = lon,
          y = lat) %>% 

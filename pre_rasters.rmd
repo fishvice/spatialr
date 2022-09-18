@@ -402,7 +402,7 @@ Zonal statistics refers to the calculation of statistics on values of a raster w
 
 Here we will find out the average current speed in three depth zones defined at 400 and 700m.  Near-bottom current speed from Bio-ORACLE (http://www.bio-oracle.org/) using the **sdmpredictors** package.
 
-```{r }
+```{r error = TRUE}
 
 
 # Near-bottom current speeds

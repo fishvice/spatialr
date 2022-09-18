@@ -10,7 +10,7 @@ bibliography: mybib.bib
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-You are here: [https://heima.hafro.is/~einarhj/spatialr](https://heima.hafro.is/~einarhj/spatialr)
+You are here: [https://heima.hafro.is/~einarhj/older/spatialr](https://heima.hafro.is/~einarhj/older/spatialr)
 
 The course announcement is [here](http://www.ices.dk/news-and-events/Training/Pages/R.aspx)
 

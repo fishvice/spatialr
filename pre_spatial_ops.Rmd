@@ -218,7 +218,8 @@ ggplot() +
 ggplot() +
   geom_sf(data = ospar_ier, aes(fill = ecoregion))
 
-ospar_ier <- st_join(ospar, ier, largest = TRUE) # 50 polygons
+# outcommented - bug
+# ospar_ier <- st_join(ospar, ier, largest = TRUE) # 50 polygons
 
 
 ```
