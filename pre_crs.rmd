@@ -112,6 +112,8 @@ When we read a spatial object into, if the projection is included in the metadat
 
 ```{r }
 library(rnaturalearth)
+# need to install below if not already on your computer
+# install.packages("rnaturalearthhires", repos = "http://packages.ropensci.org", type = "source")
 library(tidyverse)
 library(sf)
 

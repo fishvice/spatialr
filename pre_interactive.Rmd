@@ -19,6 +19,8 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 ```{r setup}
 library(rnaturalearth)
+# need to install below if not already on your computer
+# install.packages("rnaturalearthhires", repos = "http://packages.ropensci.org", type = "source")
 library(sf)
 library(htmltools)
 library(leaflet)
